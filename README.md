@@ -295,7 +295,9 @@ that differs between macOS and the container CI uses.
 
 CI runs the same suite on Linux and macOS, against the oldest supported git as well as
 the current one, and calls `make cover` for the coverage floor so the number is defined
-in one place.
+in one place. That job pins its Go version: 1.27 changed how coverage blocks are
+recorded, and the same tests over the same code report 88.8% on 1.24 and 91.4% on 1.27,
+so a floor is only meaningful next to the toolchain that measured it.
 
 ## License
 

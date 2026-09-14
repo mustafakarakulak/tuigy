@@ -297,6 +297,9 @@ arasında farklılaşan davranışları yakaladı.
 
 CI aynı test paketini Linux ve macOS'ta, hem desteklenen en eski git hem güncel git ile
 çalıştırır; kapsam eşiği için de `make cover` çağırır, böylece o sayı tek yerde tanımlıdır.
+O job Go sürümünü sabitler: 1.27, kapsam bloklarının kaydedilme biçimini değiştirdi ve
+aynı kod üzerindeki aynı testler 1.24'te %88.8, 1.27'de %91.4 raporluyor. Yani bir eşik,
+ancak onu ölçen araç sürümüyle birlikte anlamlı.
 
 ## Lisans
 

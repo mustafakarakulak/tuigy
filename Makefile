@@ -6,6 +6,8 @@
 BINARY      := tuigy
 COVER_FILE  := coverage.out
 COVER_FLOOR := 90
+# The toolchain the floor is calibrated on; Go 1.27 changed how blocks are recorded.
+COVER_GO    := 1.27
 # The oldest Go and git tuigy supports, which is what the Linux check runs.
 LINUX_IMAGE := golang:1.24
 
@@ -44,7 +46,10 @@ cover: ## measure coverage across packages and enforce the floor
 	@total=$$(go tool cover -func=$(COVER_FILE) | tail -1 | awk '{print $$3}' | tr -d '%'); \
 	awk -v total="$$total" -v floor="$(COVER_FLOOR)" \
 		'BEGIN { exit (total + 0 >= floor) ? 0 : 1 }' \
-		|| { echo "coverage $$total% is below the $(COVER_FLOOR)% floor"; exit 1; }
+		|| { echo "coverage $$total% is below the $(COVER_FLOOR)% floor"; \
+		     echo "(the floor is measured with Go $(COVER_GO); older toolchains record"; \
+		     echo " coverage blocks differently and report a lower figure for the same tests)"; \
+		     exit 1; }
 
 .PHONY: cover-html
 cover-html: cover ## open the coverage report in a browser
