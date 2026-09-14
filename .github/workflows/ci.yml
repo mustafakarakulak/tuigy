@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      # The tests drive the real git binary against throwaway repositories.
+      # They set an identity per repository, but a global one matches how a
+      # developer's machine is actually configured.
+      - name: Configure git
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "tuigy CI"
+          git --version
+
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt'd:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - run: go build ./...
+
+      - run: go vet ./...
+
+      - run: go test -race ./...
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Configure git
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "tuigy CI"
+
+      # Through make, so the floor is defined in one place and running it
+      # locally means exactly what it means here.
+      - name: Measure coverage and enforce the floor
+        run: make cover
+
+  # tuigy shells out to git, so the oldest git it claims to support is part of
+  # the contract. bullseye ships 2.30; the commands used need 2.23 or newer.
+  oldest-git:
+    name: oldest supported git
+    runs-on: ubuntu-latest
+    container: golang:1.24-bullseye
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global user.email "ci@example.com"
+          git config --global user.name "tuigy CI"
+          git --version
+
+      - run: go test ./...
+
+  cross-compile:
+    name: cross-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # tuigy ships prebuilt binaries, so a platform must never break unnoticed.
+      - name: Build every release target
+        run: |
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+            echo "building $target"
+            GOOS=${target%/*} GOARCH=${target#*/} go build -o /dev/null ./cmd/tuigy
+          done
