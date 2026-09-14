@@ -119,19 +119,30 @@ func (r *Runner) Write(ctx context.Context, args ...string) (string, error) {
 }
 
 func (r *Runner) readCapped(ctx context.Context, args []string, limit int) (string, error) {
-	return r.execCapped(ctx, args, []string{"GIT_OPTIONAL_LOCKS=0"}, limit)
+	return r.execCapped(ctx, args, []string{"GIT_OPTIONAL_LOCKS=0"}, "", limit)
+}
+
+// WriteStdin runs a modifying command with data on its standard input, which is
+// how a patch reaches git apply without going through a temporary file.
+func (r *Runner) WriteStdin(ctx context.Context, stdin string, args ...string) (string, error) {
+	r.writeMu.Lock()
+	defer r.writeMu.Unlock()
+	return r.execCapped(ctx, args, []string{"GIT_EDITOR=true"}, stdin, 0)
 }
 
 func (r *Runner) exec(ctx context.Context, args, extraEnv []string) (string, error) {
-	return r.execCapped(ctx, args, extraEnv, 0)
+	return r.execCapped(ctx, args, extraEnv, "", 0)
 }
 
-func (r *Runner) execCapped(ctx context.Context, args, extraEnv []string, limit int) (string, error) {
+func (r *Runner) execCapped(ctx context.Context, args, extraEnv []string, stdin string, limit int) (string, error) {
 	full := append(append([]string{}, globalArgs...), args...)
 
 	cmd := exec.CommandContext(ctx, "git", full...)
 	cmd.Dir = r.dir
 	cmd.Env = append(baseEnv(), extraEnv...)
+	if stdin != "" {
+		cmd.Stdin = strings.NewReader(stdin)
+	}
 
 	stdout := &cappedBuffer{limit: limit}
 	var stderr bytes.Buffer

@@ -666,6 +666,16 @@ func (m Model) generateBinding() key.Binding {
 	)
 }
 
+// hunkBinding says which way the hunk under the cursor would move, since the
+// same key stages or unstages depending on where the file already is.
+func (m Model) hunkBinding() key.Binding {
+	action := "stage this hunk"
+	if r, ok := m.selected(); ok && r.staged() {
+		action = "unstage this hunk"
+	}
+	return key.NewBinding(key.WithKeys(" "), key.WithHelp("space", action))
+}
+
 // editorBinding names the editor in the hint, so the key says what it will
 // actually do rather than leaving the user to find out by pressing it.
 func (m Model) editorBinding() key.Binding {
@@ -693,7 +703,8 @@ func (m Model) viewHints() hintSet {
 	}
 	// The diff pane scrolls sideways and jumps between hunks; the others do not.
 	diffScrolling := hintSet{
-		[]key.Binding{m.keys.PageDown, m.keys.PageUp, m.keys.NextHunk, m.keys.PrevHunk, m.keys.Right, m.keys.Left},
+		[]key.Binding{m.hunkBinding(), m.keys.NextHunk, m.keys.PrevHunk,
+			m.keys.PageDown, m.keys.PageUp, m.keys.Right, m.keys.Left},
 		[]key.Binding{m.keys.Cancel, m.keys.Help},
 	}
 

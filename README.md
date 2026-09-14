@@ -16,10 +16,12 @@ operations you actually perform every day as fast and as obvious as possible.
 Everything on the original plan is in. Working today:
 
 - repository header: branch, upstream, ahead/behind, dirty state, in-progress merge or cherry-pick
-- changes view split into conflicts / staged / unstaged / untracked
+- changes view split into conflicts / staged / unstaged / untracked, grouped by directory
+  where that saves repeating a prefix
 - diff viewer for working tree, index and untracked files: scrolls in both directions,
   picks out the words that actually changed within an edited line, and jumps hunk to hunk
-- stage, unstage, stage all, unstage all, discard (with confirmation)
+- stage, unstage, stage all, unstage all, discard (with confirmation), and stage or
+  unstage a single hunk from inside the diff
 - commit and amend
 - branch list with per-branch upstream, ahead/behind and last commit
 - switch branch, check out a remote branch, create a branch from a chosen source, delete a branch
@@ -81,6 +83,7 @@ Run `tuigy` anywhere inside a Git repository.
 | `ctrl+d` / `ctrl+u` | scroll the diff or detail pane |
 | `←` `→` / `h` `l` | scroll a diff sideways |
 | `]` / `[` | jump to the next / previous hunk |
+| `space` (in a diff) | stage or unstage the hunk under the cursor |
 | `esc` | close a dialog, leave a pane, clear a filter |
 | `/` | filter the list you are on |
 | `Y` | copy what the cursor is on (path, branch, commit hash, stash) |
@@ -200,6 +203,16 @@ wrote survive.
 draws them belongs to your terminal emulator. What tuigy does choose is the handful of
 symbols it uses — arrows, bullets, box drawing — which need a font with reasonable
 Unicode coverage.
+
+## Staging part of a file
+
+With the diff focused, `]` and `[` move between hunks and `space` moves the one under the
+cursor across on its own. The file then sits in both the staged and the unstaged list,
+which is exactly what has happened to it.
+
+This is worth having next to a coding agent, which rarely produces a file whose every
+change belongs in the same commit. Untracked files are the exception: there is nothing to
+apply a patch against yet, so they are staged whole.
 
 ## Reviewing what an agent wrote
 

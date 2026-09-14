@@ -18,11 +18,13 @@ avuç işlemi mümkün olan en hızlı ve en anlaşılır biçimde sunmak.
 İlk plandaki her şey tamamlandı. Bugün çalışanlar:
 
 - repository başlığı: branch, upstream, ahead/behind, kirli durum, yarım kalmış merge veya cherry-pick
-- çakışma / staged / unstaged / untracked olarak ayrılmış değişiklikler görünümü
+- çakışma / staged / unstaged / untracked olarak ayrılmış değişiklikler görünümü; ortak
+  öneki tekrarlamaya değdiğinde dizine göre gruplanır
 - working tree, index ve takipsiz dosyalar için diff görüntüleyici: iki yönde kayar,
   değişen bir satırda gerçekten neyin değiştiğini kelime düzeyinde gösterir, hunk'lar
   arasında atlar
-- stage, unstage, hepsini stage, hepsini unstage, değişikliği atma (onay sorarak)
+- stage, unstage, hepsini stage, hepsini unstage, değişikliği atma (onay sorarak), ve
+  diff'in içinden tek bir hunk'ı stage/unstage etme
 - commit ve amend
 - branch listesi: her branch için upstream, ahead/behind ve son commit
 - branch değiştirme, remote branch'i local'e alma, seçilen kaynaktan yeni branch, branch silme
@@ -83,6 +85,7 @@ go build -o tuigy ./cmd/tuigy
 | `ctrl+d` / `ctrl+u` | diff veya detay panelini kaydır |
 | `←` `→` / `h` `l` | diff'i yana kaydır |
 | `]` / `[` | sonraki / önceki hunk'a atla |
+| `space` (diff'te) | imlecin üzerindeki hunk'ı stage/unstage et |
 | `esc` | diyaloğu kapat, panelden çık, filtreyi temizle |
 | `/` | bulunduğun listeyi filtrele |
 | `Y` | imlecin üzerindekini kopyala (yol, branch, commit hash'i, stash) |
@@ -202,6 +205,16 @@ kalır.
 onları hangi yazı tipinin çizeceği terminal emülatörüne aittir. tuigy'nin seçtiği şey
 kullandığı bir avuç sembol — oklar, madde imleri, kutu çizgileri — ve bunlar makul Unicode
 kapsamı olan bir font ister.
+
+## Dosyanın bir kısmını stage'lemek
+
+Diff odaktayken `]` ve `[` hunk'lar arasında gezer, `space` imlecin üzerindekini tek
+başına karşıya geçirir. Dosya bundan sonra hem staged hem unstaged listesinde görünür —
+ki gerçekten başına gelen budur.
+
+Bir coding agent'ın yanında bu işe yarar: agent nadiren her değişikliği aynı commit'e ait
+olan bir dosya üretir. Takipsiz dosyalar istisna — henüz patch uygulanacak bir taraf
+olmadığı için bütün olarak stage'lenirler.
 
 ## Agent'ın yazdıklarını gözden geçirmek
 

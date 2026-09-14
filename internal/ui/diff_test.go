@@ -85,7 +85,7 @@ func TestWordDiffGivesUpOnEnormousLines(t *testing.T) {
 func TestRenderDiffEmphasisesChangedWords(t *testing.T) {
 	raw := "@@ -1,2 +1,2 @@\n context\n-var timeout = 30\n+var timeout = 60\n"
 
-	got := renderDiff(raw).content
+	got := renderDiff(raw, noHunk).content
 	if !strings.Contains(got, "30") || !strings.Contains(got, "60") {
 		t.Fatalf("the diff lost its content:\n%s", got)
 	}
@@ -107,7 +107,7 @@ func TestRenderDiffEmphasisesChangedWords(t *testing.T) {
 func TestRenderDiffLeavesUnevenBlocksAlone(t *testing.T) {
 	raw := "@@ -1,3 +1,2 @@\n-one\n-two\n-three\n+only\n"
 
-	got := renderDiff(raw).content
+	got := renderDiff(raw, noHunk).content
 	for _, want := range []string{"one", "two", "three", "only"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("the diff lost %q:\n%s", want, got)
@@ -122,7 +122,7 @@ func TestRenderDiffLeavesUnevenBlocksAlone(t *testing.T) {
 // would throw away the part the user wants to reach.
 func TestRenderDiffKeepsLongLinesWhole(t *testing.T) {
 	long := strings.Repeat("x", 300)
-	got := renderDiff("@@ -1 +1 @@\n+" + long + "\n").content
+	got := renderDiff("@@ -1 +1 @@\n+"+long+"\n", noHunk).content
 
 	if !strings.Contains(got, long) {
 		t.Error("a long line was cut during rendering")
@@ -134,7 +134,7 @@ func TestRenderDiffFindsHunks(t *testing.T) {
 		"@@ -1,2 +1,2 @@\n context\n-old\n+new\n" +
 		"@@ -20,2 +20,2 @@\n context\n-old\n+new\n"
 
-	rendered := renderDiff(raw)
+	rendered := renderDiff(raw, noHunk)
 	if len(rendered.hunks) != 2 {
 		t.Fatalf("found %d hunks, want 2", len(rendered.hunks))
 	}

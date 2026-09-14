@@ -328,17 +328,55 @@ func (m Model) handleDiffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case key.Matches(msg, m.keys.NextHunk):
-		m.diff.SetYOffset(nextHunk(m.diffHunks, m.diff.YOffset))
+		m.moveHunkCursor(1)
 		return m, nil
 
 	case key.Matches(msg, m.keys.PrevHunk):
-		m.diff.SetYOffset(previousHunk(m.diffHunks, m.diff.YOffset))
+		m.moveHunkCursor(-1)
 		return m, nil
+
+	case key.Matches(msg, m.keys.Toggle), key.Matches(msg, m.keys.Stage):
+		return m.applyHunk()
 	}
 
 	var cmd tea.Cmd
 	m.diff, cmd = m.diff.Update(msg)
 	return m, cmd
+}
+
+// applyHunk moves the hunk under the cursor across, in whichever direction the
+// file it belongs to is sitting.
+//
+// This is the reason a diff is worth navigating rather than only reading: a
+// coding agent rarely produces a file whose every change you want in the same
+// commit.
+func (m Model) applyHunk() (tea.Model, tea.Cmd) {
+	r, ok := m.selected()
+	if !ok {
+		return m, nil
+	}
+
+	if r.file.Worktree == git.StatusUntracked {
+		m.err = errors.New("this file is not tracked yet; stage the whole file first (space)")
+		return m, nil
+	}
+	if len(m.diffHunks) == 0 || m.diffRaw == "" {
+		m.err = errors.New("there is no hunk here to stage")
+		return m, nil
+	}
+
+	repo, diff, index := m.repo, m.diffRaw, m.hunkCursor
+	position := fmt.Sprintf("hunk %d of %d in %s", index+1, len(m.diffHunks), r.file.Path)
+	m.err = nil
+
+	if r.staged() {
+		return m, runOp("unstaging "+position, "unstaged "+position, func(ctx context.Context) error {
+			return repo.UnstageHunk(ctx, diff, index)
+		})
+	}
+	return m, runOp("staging "+position, "staged "+position, func(ctx context.Context) error {
+		return repo.StageHunk(ctx, diff, index)
+	})
 }
 
 // nextHunk is the first hunk below the current position, or the last one when

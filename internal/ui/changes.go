@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -31,12 +32,19 @@ func (s section) title() string {
 	}
 }
 
-// row is one line of the file list: either a section header or a file.
+// row is one line of the file list: a section heading, a directory heading, or
+// a file. Both kinds of heading set header, so the cursor skips them alike.
 type row struct {
 	header bool
-	sec    section
-	count  int
-	file   git.FileStatus
+	// dir is set on a directory heading, and names the directory.
+	dir string
+	// indent marks a file shown underneath a directory heading, where only its
+	// name is written.
+	indent bool
+
+	sec   section
+	count int
+	file  git.FileStatus
 }
 
 // staged reports whether the row represents the index side of the file.
@@ -58,9 +66,15 @@ func (r row) letter() string {
 }
 
 // label is the name shown in the list, including the old path for a rename.
+//
+// Under a directory heading only the file name is written, since the rest of
+// the path is already on the line above.
 func (r row) label() string {
 	if r.file.OrigPath != "" {
 		return r.file.OrigPath + " → " + r.file.Path
+	}
+	if r.indent {
+		return path.Base(r.file.Path)
 	}
 	return r.file.Path
 }
@@ -83,9 +97,7 @@ func buildRows(st *git.Status, filter string) []row {
 		}
 
 		rows = append(rows, row{header: true, sec: sec, count: len(matched)})
-		for _, f := range matched {
-			rows = append(rows, row{sec: sec, file: f})
-		}
+		rows = append(rows, groupByDirectory(sec, matched)...)
 	}
 
 	add(secConflict, st.Conflicted())
@@ -93,6 +105,56 @@ func buildRows(st *git.Status, filter string) []row {
 	add(secUnstaged, st.Unstaged())
 	add(secUntracked, st.Untracked())
 	return rows
+}
+
+// groupByDirectory gives a directory its own line when more than one changed
+// file sits in it.
+//
+// An agent working across a package produces a column of paths that all begin
+// the same way; naming the directory once turns that into something scannable.
+// A directory holding a single file keeps its full path inline, because a
+// heading for one entry is just another line to read.
+func groupByDirectory(sec section, files []git.FileStatus) []row {
+	var out []row
+
+	for i := 0; i < len(files); {
+		dir := directoryOf(files[i])
+
+		j := i
+		for j < len(files) && directoryOf(files[j]) == dir {
+			j++
+		}
+
+		if dir == "" || j-i < 2 {
+			for _, f := range files[i:j] {
+				out = append(out, row{sec: sec, file: f})
+			}
+			i = j
+			continue
+		}
+
+		out = append(out, row{header: true, dir: dir, sec: sec, count: j - i})
+		for _, f := range files[i:j] {
+			out = append(out, row{sec: sec, file: f, indent: true})
+		}
+		i = j
+	}
+
+	return out
+}
+
+// directoryOf is the directory a change belongs under, or empty when there is
+// nothing to group it by: a file at the root, an untracked directory that is
+// already one line, or a rename whose two paths would not agree.
+func directoryOf(f git.FileStatus) string {
+	if f.OrigPath != "" || strings.HasSuffix(f.Path, "/") {
+		return ""
+	}
+	dir := path.Dir(f.Path)
+	if dir == "." {
+		return ""
+	}
+	return dir + "/"
 }
 
 func letterStyle(letter string) lipgloss.Style {
@@ -123,7 +185,11 @@ func renderList(rows []row, cursor, offset, width, height int, reviewed map[stri
 
 	for i := offset; i < end; i++ {
 		r := rows[i]
-		if r.header {
+		switch {
+		case r.header && r.dir != "":
+			lines = append(lines, " "+styleDim.Render(truncateLeft(r.dir, width-1)))
+			continue
+		case r.header:
 			lines = append(lines, styleSection.Render(fmt.Sprintf("%s (%d)", r.sec.title(), r.count)))
 			continue
 		}
@@ -137,15 +203,20 @@ func renderList(rows []row, cursor, offset, width, height int, reviewed map[stri
 			mark = "✓"
 		}
 
-		// Width budget: the review mark, a space, the status letter, a space.
-		name := truncateLeft(r.label(), width-4)
+		// Width budget: the review mark, a space, the status letter, a space,
+		// and two more when the file sits under a directory heading.
+		indent := ""
+		if r.indent {
+			indent = "  "
+		}
+		name := truncateLeft(r.label(), width-4-len(indent))
 
 		if i == cursor {
-			lines = append(lines, styleSelected.Width(width).Render(mark+" "+letter+" "+name))
+			lines = append(lines, styleSelected.Width(width).Render(mark+" "+letter+" "+indent+name))
 			continue
 		}
 		lines = append(lines, styleAdded.Render(mark)+" "+
-			letterStyle(letter).Render(letter)+" "+styleBase.Render(name))
+			letterStyle(letter).Render(letter)+" "+indent+styleBase.Render(name))
 	}
 
 	return strings.Join(lines, "\n")

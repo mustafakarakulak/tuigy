@@ -140,9 +140,14 @@ type Model struct {
 	listOff int
 	diff    viewport.Model
 	diffKey string
-	// diffHunks holds the line offsets of the hunk headers in the diff pane.
-	diffHunks []int
-	focus     pane
+	// diffRaw is the diff as git wrote it, kept so that a single hunk can be
+	// turned back into a patch.
+	diffRaw string
+	// diffHunks holds the line offsets of the hunk headers in the diff pane,
+	// and hunkCursor which of them is selected.
+	diffHunks  []int
+	hunkCursor int
+	focus      pane
 
 	// The help screen scrolls: on a short terminal it would otherwise be
 	// impossible to reach the shortcuts near the bottom.
@@ -544,9 +549,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case diffMsg:
 		// Stale requests that lost the race are dropped.
 		if msg.key == m.diffKey {
-			rendered := renderDiff(msg.text)
-			m.diff.SetContent(rendered.content)
-			m.diffHunks = rendered.hunks
+			m.diffRaw = msg.text
+			m.hunkCursor = 0
+			m.renderDiffPane()
 			m.diff.GotoTop()
 			m.diff.SetXOffset(0)
 		}
@@ -954,11 +959,31 @@ func (m *Model) applyBranches(branches []git.Branch) {
 	m.ensureBranchVisible()
 }
 
+// renderDiffPane redraws the diff for the hunk currently under the cursor.
+func (m *Model) renderDiffPane() {
+	rendered := renderDiff(m.diffRaw, m.hunkCursor)
+	m.diff.SetContent(rendered.content)
+	m.diffHunks = rendered.hunks
+	m.hunkCursor = clamp(m.hunkCursor, 0, max(len(m.diffHunks)-1, 0))
+}
+
+// moveHunkCursor steps between hunks and brings the chosen one into view.
+func (m *Model) moveHunkCursor(delta int) {
+	if len(m.diffHunks) == 0 {
+		return
+	}
+	m.hunkCursor = clamp(m.hunkCursor+delta, 0, len(m.diffHunks)-1)
+	m.renderDiffPane()
+	m.diff.SetYOffset(m.diffHunks[m.hunkCursor])
+}
+
 // syncDiff reloads the diff when the selected row has changed.
 func (m *Model) syncDiff() tea.Cmd {
 	r, ok := m.selected()
 	if !ok {
 		m.diffKey = ""
+		m.diffRaw = ""
+		m.diffHunks = nil
 		m.diff.SetContent(styleDim.Render("no file selected"))
 		return nil
 	}

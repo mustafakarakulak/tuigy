@@ -59,6 +59,6 @@ func renderStashDetail(s git.Stash, diff string, width int) string {
 		field("when", humanTime(s.Date)),
 		"",
 		styleSection.Render("DIFF"),
-		renderDiff(diff).content,
+		renderDiff(diff, noHunk).content,
 	)
 }

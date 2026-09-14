@@ -16,6 +16,10 @@ const (
 	maxDiffBytes = 1 << 20
 )
 
+// noHunk means the diff is being shown without a cursor, as in a commit or a
+// stash, where there is nothing to stage.
+const noHunk = -1
+
 // maxWordDiffTokens bounds the line-comparison work. The algorithm is quadratic
 // and a minified bundle on one line would otherwise stall the render.
 const maxWordDiffTokens = 400
@@ -32,7 +36,10 @@ type renderedDiff struct {
 //
 // Lines are not cut to the pane width: the viewport scrolls horizontally, so
 // cutting here would throw away the part the user wants to scroll to.
-func renderDiff(raw string) renderedDiff {
+//
+// current is the hunk the cursor is on, marked so that staging one piece of a
+// file has something visible to act on. Pass noHunk where there is no cursor.
+func renderDiff(raw string, current int) renderedDiff {
 	if strings.TrimSpace(raw) == "" {
 		return renderedDiff{content: styleDim.Render("no changes")}
 	}
@@ -55,6 +62,11 @@ func renderDiff(raw string) renderedDiff {
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 		if strings.HasPrefix(line, "@@") {
+			if len(hunks) == current {
+				out = append(out, styleSelected.Render(" ▸ "+expandTabs(line)+" "))
+				hunks = append(hunks, len(out)-1)
+				continue
+			}
 			hunks = append(hunks, len(out))
 		}
 
