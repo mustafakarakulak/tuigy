@@ -70,7 +70,7 @@ func TestStashPushFromTheChangesTab(t *testing.T) {
 	if m.modal != modalStash {
 		t.Fatal("S should open the stash dialog")
 	}
-	if !strings.Contains(m.View(), "untracked files stay where they are") {
+	if !strings.Contains(plain(m.View()), "untracked files stay where they are") {
 		t.Error("the dialog does not say untracked files are left alone")
 	}
 
@@ -127,7 +127,7 @@ func TestStashesTabListsStashes(t *testing.T) {
 		t.Fatalf("stashes = %v, want the newest first", got)
 	}
 
-	view := m.View()
+	view := plain(m.View())
 	for _, want := range []string{"second", "first", "stash@{0}"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the stash view is missing %q", want)
@@ -232,7 +232,7 @@ func TestStashFooterRelabelsTheDeleteKey(t *testing.T) {
 // rather than push the layout wider.
 func TestTabBarShrinksOnNarrowTerminals(t *testing.T) {
 	wide, _ := newStashModel(t, 120, 32)
-	if got := wide.tabsView(); !strings.Contains(got, "Branches") || !strings.Contains(got, "Stashes") {
+	if got := plain(wide.tabsView()); !strings.Contains(got, "Branches") || !strings.Contains(got, "Stashes") {
 		t.Errorf("a wide terminal should label every tab: %q", got)
 	}
 

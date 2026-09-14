@@ -17,7 +17,8 @@ Everything on the original plan is in. Working today:
 
 - repository header: branch, upstream, ahead/behind, dirty state, in-progress merge or cherry-pick
 - changes view split into conflicts / staged / unstaged / untracked
-- scrollable diff viewer for working tree, index and untracked files
+- diff viewer for working tree, index and untracked files: scrolls in both directions,
+  picks out the words that actually changed within an edited line, and jumps hunk to hunk
 - stage, unstage, stage all, unstage all, discard (with confirmation)
 - commit and amend
 - branch list with per-branch upstream, ahead/behind and last commit
@@ -78,6 +79,8 @@ Run `tuigy` anywhere inside a Git repository.
 | `↑` `↓` / `k` `j` | move |
 | `g` / `G` | jump to first / last |
 | `ctrl+d` / `ctrl+u` | scroll the diff or detail pane |
+| `←` `→` / `h` `l` | scroll a diff sideways |
+| `]` / `[` | jump to the next / previous hunk |
 | `esc` | close a dialog, leave a pane, clear a filter |
 | `/` | filter the list you are on |
 | `Y` | copy what the cursor is on (path, branch, commit hash, stash) |

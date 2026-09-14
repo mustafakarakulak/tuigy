@@ -300,7 +300,7 @@ func TestNewBranchUsesSelectedBranchAsSource(t *testing.T) {
 	if m.branchFrom != "develop" {
 		t.Errorf("source = %q, want the selected branch develop", m.branchFrom)
 	}
-	if !strings.Contains(m.View(), "develop") {
+	if !strings.Contains(plain(m.View()), "develop") {
 		t.Error("the view does not show which branch the new one comes from")
 	}
 }
@@ -363,7 +363,7 @@ func TestBranchesFooterShowsRelevantShortcuts(t *testing.T) {
 	}
 
 	m = m.selectBranch(t, "develop")
-	if !strings.Contains(m.footerView(), "switch to branch") {
+	if !strings.Contains(plain(m.footerView()), "switch to branch") {
 		t.Errorf("footer does not offer to switch:\n%s", m.footerView())
 	}
 }

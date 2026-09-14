@@ -43,7 +43,7 @@ func TestGenerateCommitMessage(t *testing.T) {
 	if m.modal != modalCommit {
 		t.Fatal("c should open the commit view")
 	}
-	if !strings.Contains(m.View(), "ctrl+g") {
+	if !strings.Contains(plain(m.View()), "ctrl+g") {
 		t.Error("the commit view does not advertise generating a message")
 	}
 
@@ -115,10 +115,10 @@ func TestWithoutAnAgentTheFeatureIsHidden(t *testing.T) {
 	}
 
 	m, _ = m.press(t, "c")
-	if strings.Contains(m.View(), "ctrl+g") {
+	if strings.Contains(plain(m.View()), "ctrl+g") {
 		t.Error("the commit view should not advertise a generator that is not there")
 	}
-	if strings.Contains(m.footerView(), "ctrl+g") {
+	if strings.Contains(plain(m.footerView()), "ctrl+g") {
 		t.Error("the footer should not advertise a generator that is not there")
 	}
 
@@ -186,15 +186,15 @@ func TestGenerateHintNamesTheAgent(t *testing.T) {
 	withFakeAgent(t, "printf 'feat: x\\n'")
 	m, _ := newTestModel(t, 120, 32)
 
-	if got := m.footerView(); !strings.Contains(got, "ctrl+g") {
+	if got := plain(m.footerView()); !strings.Contains(got, "ctrl+g") {
 		t.Errorf("the footer does not offer the key at all:\n%s", got)
 	}
 
 	m, _ = m.press(t, "c")
-	if got := m.footerView(); !strings.Contains(got, m.ai.Name()) {
+	if got := plain(m.footerView()); !strings.Contains(got, m.ai.Name()) {
 		t.Errorf("the footer does not name the agent:\n%s", got)
 	}
-	if got := m.View(); !strings.Contains(got, m.ai.Name()) {
+	if got := plain(m.View()); !strings.Contains(got, m.ai.Name()) {
 		t.Errorf("the commit view does not name the agent:\n%s", got)
 	}
 }
@@ -205,7 +205,7 @@ func TestGenerateFromTheChangesListWithoutAnAgent(t *testing.T) {
 	withoutAgent(t)
 	m, _ := newTestModel(t, 120, 32)
 
-	if strings.Contains(m.footerView(), "ctrl+g") {
+	if strings.Contains(plain(m.footerView()), "ctrl+g") {
 		t.Error("the footer offers a generator that is not there")
 	}
 

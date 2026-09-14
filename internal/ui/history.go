@@ -100,7 +100,7 @@ func renderCommitDetail(d *git.CommitDetail, width int) string {
 			" "+letterStyle(letter).Render(letter)+" "+styleBase.Render(truncateLeft(name, max(width-3, 8))))
 	}
 
-	sections = append(sections, "", styleSection.Render("DIFF"), renderDiff(d.Diff, width))
+	sections = append(sections, "", styleSection.Render("DIFF"), renderDiff(d.Diff).content)
 	return lipgloss.JoinVertical(lipgloss.Left, sections...)
 }
 

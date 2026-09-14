@@ -691,6 +691,11 @@ func (m Model) viewHints() hintSet {
 		[]key.Binding{m.keys.PageDown, m.keys.PageUp},
 		[]key.Binding{m.keys.Cancel, m.keys.Help},
 	}
+	// The diff pane scrolls sideways and jumps between hunks; the others do not.
+	diffScrolling := hintSet{
+		[]key.Binding{m.keys.PageDown, m.keys.PageUp, m.keys.NextHunk, m.keys.PrevHunk, m.keys.Right, m.keys.Left},
+		[]key.Binding{m.keys.Cancel, m.keys.Help},
+	}
 
 	switch m.tab {
 	case tabBranches:
@@ -728,7 +733,7 @@ func (m Model) viewHints() hintSet {
 
 	default:
 		if m.focus == paneDetail {
-			return scrolling
+			return diffScrolling
 		}
 		// Ordered by what someone reaching for the footer most often wants:
 		// stage, then finish the job, then read through, then the rest.

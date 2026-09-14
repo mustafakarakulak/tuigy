@@ -310,7 +310,7 @@ func TestCommitWithoutStagedChangesShowsError(t *testing.T) {
 	if m.err == nil {
 		t.Fatal("the user should have been shown an error")
 	}
-	if !strings.Contains(m.footerView(), "staged") {
+	if !strings.Contains(plain(m.footerView()), "staged") {
 		t.Errorf("the footer does not explain the situation: %s", m.footerView())
 	}
 }
@@ -363,7 +363,7 @@ func TestTabSwitchesPaneAndEscReturns(t *testing.T) {
 	if m.focus != paneDetail {
 		t.Fatal("tab should have moved focus to the diff")
 	}
-	if !strings.Contains(m.footerView(), "page") {
+	if !strings.Contains(plain(m.footerView()), "page") {
 		t.Errorf("the footer does not show the diff shortcuts: %s", m.footerView())
 	}
 

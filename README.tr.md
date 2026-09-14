@@ -19,7 +19,9 @@ avuç işlemi mümkün olan en hızlı ve en anlaşılır biçimde sunmak.
 
 - repository başlığı: branch, upstream, ahead/behind, kirli durum, yarım kalmış merge veya cherry-pick
 - çakışma / staged / unstaged / untracked olarak ayrılmış değişiklikler görünümü
-- working tree, index ve takipsiz dosyalar için kaydırılabilir diff görüntüleyici
+- working tree, index ve takipsiz dosyalar için diff görüntüleyici: iki yönde kayar,
+  değişen bir satırda gerçekten neyin değiştiğini kelime düzeyinde gösterir, hunk'lar
+  arasında atlar
 - stage, unstage, hepsini stage, hepsini unstage, değişikliği atma (onay sorarak)
 - commit ve amend
 - branch listesi: her branch için upstream, ahead/behind ve son commit
@@ -79,6 +81,8 @@ go build -o tuigy ./cmd/tuigy
 | `↑` `↓` / `k` `j` | gezin |
 | `g` / `G` | başa / sona git |
 | `ctrl+d` / `ctrl+u` | diff veya detay panelini kaydır |
+| `←` `→` / `h` `l` | diff'i yana kaydır |
+| `]` / `[` | sonraki / önceki hunk'a atla |
 | `esc` | diyaloğu kapat, panelden çık, filtreyi temizle |
 | `/` | bulunduğun listeyi filtrele |
 | `Y` | imlecin üzerindekini kopyala (yol, branch, commit hash'i, stash) |

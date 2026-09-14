@@ -156,7 +156,7 @@ func TestMergeDialogExplainsWhatWillHappen(t *testing.T) {
 		if got := m.mergePlan.summary(); !strings.Contains(got, c.want) {
 			t.Errorf("target %s: summary = %q, want it to mention %q", c.target, got, c.want)
 		}
-		if !strings.Contains(m.View(), c.want) {
+		if !strings.Contains(plain(m.View()), c.want) {
 			t.Errorf("target %s: the dialog does not show the consequence", c.target)
 		}
 	}
@@ -264,7 +264,7 @@ func TestMergeConflictContinueAfterResolving(t *testing.T) {
 	}
 
 	m, _ = m.press(t, "m")
-	if !strings.Contains(m.View(), "resolved and staged") {
+	if !strings.Contains(plain(m.View()), "resolved and staged") {
 		t.Error("the dialog does not say the merge is ready to continue")
 	}
 
@@ -318,7 +318,7 @@ func TestOperationDialogNamesTheEditor(t *testing.T) {
 	if m.modal != modalOperation {
 		t.Fatal("m should open the operation dialog")
 	}
-	if got := m.View(); !strings.Contains(got, "Resolve each one in micro") {
+	if got := plain(m.View()); !strings.Contains(got, "Resolve each one in micro") {
 		t.Errorf("the dialog does not name the editor:\n%s", got)
 	}
 }

@@ -117,7 +117,7 @@ func TestCommitWarnsAboutUnreviewedFiles(t *testing.T) {
 	if m.modal != modalCommit {
 		t.Fatal("the commit view should open")
 	}
-	if !strings.Contains(m.View(), "not reviewed") {
+	if !strings.Contains(plain(m.View()), "not reviewed") {
 		t.Errorf("the commit view does not mention unreviewed files:\n%s", m.View())
 	}
 
@@ -129,7 +129,7 @@ func TestCommitWarnsAboutUnreviewedFiles(t *testing.T) {
 	if m.unreviewedStaged() != 0 {
 		t.Fatalf("%d staged files are still unreviewed", m.unreviewedStaged())
 	}
-	if strings.Contains(m.View(), "not reviewed") {
+	if strings.Contains(plain(m.View()), "not reviewed") {
 		t.Error("the warning is still shown once everything staged has been read")
 	}
 }

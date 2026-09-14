@@ -13,6 +13,10 @@ type Map struct {
 	Bottom   key.Binding
 	PageUp   key.Binding
 	PageDown key.Binding
+	Left     key.Binding
+	Right    key.Binding
+	NextHunk key.Binding
+	PrevHunk key.Binding
 
 	NextPane key.Binding
 	PrevPane key.Binding
@@ -74,6 +78,10 @@ func Default() Map {
 		Bottom:   key.NewBinding(key.WithKeys("G", "end"), key.WithHelp("G", "last")),
 		PageUp:   key.NewBinding(key.WithKeys("ctrl+u", "pgup"), key.WithHelp("ctrl+u", "page up")),
 		PageDown: key.NewBinding(key.WithKeys("ctrl+d", "pgdown"), key.WithHelp("ctrl+d", "page down")),
+		Left:     key.NewBinding(key.WithKeys("left", "h"), key.WithHelp("←/h", "scroll left")),
+		Right:    key.NewBinding(key.WithKeys("right", "l"), key.WithHelp("→/l", "scroll right")),
+		NextHunk: key.NewBinding(key.WithKeys("]"), key.WithHelp("]", "next hunk")),
+		PrevHunk: key.NewBinding(key.WithKeys("["), key.WithHelp("[", "previous hunk")),
 
 		NextPane: key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next pane")),
 		PrevPane: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "previous pane")),

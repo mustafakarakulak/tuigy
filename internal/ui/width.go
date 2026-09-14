@@ -18,6 +18,19 @@ func clipStyled(s string, width int) string {
 	return ansi.Truncate(s, width, "")
 }
 
+// clipLine fits plain text to a width, marking where it was cut. It is for
+// single-line messages; anything already styled goes through clipStyled.
+func clipLine(line string, width int) string {
+	if width <= 0 {
+		return line
+	}
+	r := []rune(line)
+	if len(r) <= width {
+		return line
+	}
+	return string(r[:width-1]) + "›"
+}
+
 // lipglossWidth measures visible width, ignoring ANSI escape sequences.
 func lipglossWidth(s string) int { return lipgloss.Width(s) }
 

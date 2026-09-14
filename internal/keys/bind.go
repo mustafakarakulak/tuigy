@@ -12,12 +12,16 @@ import (
 // a deliberate, greppable part of the interface.
 func (m *Map) bindings() map[string]*key.Binding {
 	return map[string]*key.Binding{
-		"up":        &m.Up,
-		"down":      &m.Down,
-		"first":     &m.Top,
-		"last":      &m.Bottom,
-		"page-up":   &m.PageUp,
-		"page-down": &m.PageDown,
+		"up":            &m.Up,
+		"down":          &m.Down,
+		"first":         &m.Top,
+		"last":          &m.Bottom,
+		"page-up":       &m.PageUp,
+		"page-down":     &m.PageDown,
+		"scroll-left":   &m.Left,
+		"scroll-right":  &m.Right,
+		"next-hunk":     &m.NextHunk,
+		"previous-hunk": &m.PrevHunk,
 
 		"next-pane":     &m.NextPane,
 		"previous-pane": &m.PrevPane,

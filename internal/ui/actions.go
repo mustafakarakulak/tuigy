@@ -312,14 +312,58 @@ func (m Model) openHelp() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleDiffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	if key.Matches(msg, m.keys.Cancel) {
+	switch {
+	case key.Matches(msg, m.keys.Cancel):
 		m.focus = paneList
+		return m, nil
+
+	// Long lines are not cut to the pane, so they can be scrolled to rather
+	// than lost.
+	case key.Matches(msg, m.keys.Left):
+		m.diff.ScrollLeft(horizontalStep)
+		return m, nil
+
+	case key.Matches(msg, m.keys.Right):
+		m.diff.ScrollRight(horizontalStep)
+		return m, nil
+
+	case key.Matches(msg, m.keys.NextHunk):
+		m.diff.SetYOffset(nextHunk(m.diffHunks, m.diff.YOffset))
+		return m, nil
+
+	case key.Matches(msg, m.keys.PrevHunk):
+		m.diff.SetYOffset(previousHunk(m.diffHunks, m.diff.YOffset))
 		return m, nil
 	}
 
 	var cmd tea.Cmd
 	m.diff, cmd = m.diff.Update(msg)
 	return m, cmd
+}
+
+// nextHunk is the first hunk below the current position, or the last one when
+// there is nothing further down.
+func nextHunk(hunks []int, current int) int {
+	for _, at := range hunks {
+		if at > current {
+			return at
+		}
+	}
+	if len(hunks) == 0 {
+		return current
+	}
+	return hunks[len(hunks)-1]
+}
+
+func previousHunk(hunks []int, current int) int {
+	previous := 0
+	for _, at := range hunks {
+		if at >= current {
+			break
+		}
+		previous = at
+	}
+	return previous
 }
 
 func (m Model) handleFilesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {

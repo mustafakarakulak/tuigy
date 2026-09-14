@@ -41,7 +41,7 @@ func TestFilterNarrowsTheBranchList(t *testing.T) {
 	if got := m.selectedBranchName_(t); got != "develop" {
 		t.Errorf("selected %q, want the match", got)
 	}
-	if !strings.Contains(m.View(), "/develop") {
+	if !strings.Contains(plain(m.View()), "/develop") {
 		t.Error("the header does not show the query")
 	}
 
@@ -53,7 +53,7 @@ func TestFilterNarrowsTheBranchList(t *testing.T) {
 	if m.filter != "develop" {
 		t.Errorf("filter = %q, want it kept", m.filter)
 	}
-	if !strings.Contains(m.View(), "of") {
+	if !strings.Contains(plain(m.View()), "of") {
 		t.Error("the header does not say how much is hidden")
 	}
 
@@ -244,8 +244,8 @@ func TestFooterAlwaysKeepsHelpAndQuit(t *testing.T) {
 	for _, width := range []int{120, 80, 60, 44} {
 		m, _ := newTestModel(t, width, 24)
 
-		footer := m.footerView()
-		if lipglossWidth(footer) > width {
+		footer := plain(m.footerView())
+		if lipglossWidth(m.footerView()) > width {
 			t.Errorf("%d columns: footer is %d wide", width, lipglossWidth(footer))
 		}
 		for _, want := range []string{"? help", "q quit"} {

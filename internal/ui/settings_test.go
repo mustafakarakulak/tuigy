@@ -46,7 +46,7 @@ func TestSettingsIsReachableAndNamesTheFile(t *testing.T) {
 	// The help screen has to point at it, or it is just another hidden key.
 	m, _ = m.press(t, "esc")
 	m, _ = m.press(t, "?")
-	if got := m.helpContent(); !strings.Contains(got, "settings") {
+	if got := plain(m.helpContent()); !strings.Contains(got, "settings") {
 		t.Errorf("the help screen does not mention the settings view:\n%s", got)
 	}
 }
@@ -117,7 +117,7 @@ func TestSettingsSavesTheChoice(t *testing.T) {
 	if m.theme != "gruvbox" {
 		t.Errorf("theme = %q, want the choice recorded", m.theme)
 	}
-	if !strings.Contains(m.footerView(), "theme saved") {
+	if !strings.Contains(plain(m.footerView()), "theme saved") {
 		t.Errorf("the footer does not confirm the save:\n%s", m.footerView())
 	}
 

@@ -108,7 +108,7 @@ func TestAmendLoadsTheLastMessage(t *testing.T) {
 	if got := m.commit.Value(); got != "initial" {
 		t.Errorf("the field holds %q, want the last commit's message", got)
 	}
-	if !strings.Contains(m.View(), "Amend") {
+	if !strings.Contains(plain(m.View()), "Amend") {
 		t.Error("the view does not say it is amending")
 	}
 
@@ -412,10 +412,10 @@ func TestHelpNamesTheEditor(t *testing.T) {
 	m, _ := newTestModel(t, 120, 32, WithEditor("/opt/homebrew/bin/micro"))
 
 	m, _ = m.press(t, "?")
-	if got := m.helpContent(); !strings.Contains(got, "open in micro") {
+	if got := plain(m.helpContent()); !strings.Contains(got, "open in micro") {
 		t.Errorf("the help screen does not name the editor:\n%s", got)
 	}
-	if got := m.helpContent(); !strings.Contains(got, "--init-config") {
+	if got := plain(m.helpContent()); !strings.Contains(got, "--init-config") {
 		t.Error("the help screen does not say how to change it")
 	}
 }

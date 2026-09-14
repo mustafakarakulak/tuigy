@@ -176,7 +176,7 @@ func TestFailedOperationReportsAndRefreshes(t *testing.T) {
 	if cmd == nil {
 		t.Error("a failed operation should still refresh")
 	}
-	if !strings.Contains(m.footerView(), "it did not work") {
+	if !strings.Contains(plain(m.footerView()), "it did not work") {
 		t.Errorf("the footer does not show the failure:\n%s", m.footerView())
 	}
 }
@@ -239,7 +239,7 @@ func TestRunningOperationIsVisible(t *testing.T) {
 	if cmd == nil {
 		t.Error("the spinner should start turning")
 	}
-	if got := m.footerView(); !strings.Contains(got, "pushing main") {
+	if got := plain(m.footerView()); !strings.Contains(got, "pushing main") {
 		t.Errorf("the footer does not say what is happening:\n%s", got)
 	}
 
@@ -250,7 +250,7 @@ func TestRunningOperationIsVisible(t *testing.T) {
 	if m.busy != "" {
 		t.Errorf("busy = %q after the operation finished", m.busy)
 	}
-	if got := m.footerView(); !strings.Contains(got, "pushed main") {
+	if got := plain(m.footerView()); !strings.Contains(got, "pushed main") {
 		t.Errorf("the footer does not report the result:\n%s", got)
 	}
 }
@@ -289,7 +289,7 @@ func TestFailedOperationStopsTheSpinner(t *testing.T) {
 	if m.busy != "" {
 		t.Errorf("busy = %q after a failure", m.busy)
 	}
-	if !strings.Contains(m.footerView(), "no network") {
+	if !strings.Contains(plain(m.footerView()), "no network") {
 		t.Errorf("the footer does not show the failure:\n%s", m.footerView())
 	}
 }

@@ -165,10 +165,12 @@ var (
 	styleSection  lipgloss.Style
 	styleSelected lipgloss.Style
 
-	styleAdded   lipgloss.Style
-	styleRemoved lipgloss.Style
-	styleHunk    lipgloss.Style
-	styleMeta    lipgloss.Style
+	styleAdded       lipgloss.Style
+	styleRemoved     lipgloss.Style
+	styleAddedEmph   lipgloss.Style
+	styleRemovedEmph lipgloss.Style
+	styleHunk        lipgloss.Style
+	styleMeta        lipgloss.Style
 
 	styleError lipgloss.Style
 	styleFlash lipgloss.Style
@@ -209,6 +211,11 @@ func applyPalette(p Palette) {
 
 	styleAdded = lipgloss.NewStyle().Foreground(p.Added)
 	styleRemoved = lipgloss.NewStyle().Foreground(p.Removed)
+
+	// The words that actually changed are inverted rather than merely bold:
+	// bold is easy to miss in a line that is already entirely coloured.
+	styleAddedEmph = lipgloss.NewStyle().Foreground(p.Inverse).Background(p.Added)
+	styleRemovedEmph = lipgloss.NewStyle().Foreground(p.Inverse).Background(p.Removed)
 	styleHunk = lipgloss.NewStyle().Foreground(p.Accent)
 	styleMeta = lipgloss.NewStyle().Foreground(p.Muted)
 

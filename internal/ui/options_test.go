@@ -27,7 +27,7 @@ func TestWithKeysRebindsTheRunningModel(t *testing.T) {
 	if after.modal != modalCommit {
 		t.Fatal("the new key does not open the commit view")
 	}
-	if !strings.Contains(m.footerView(), "ctrl+k commit") {
+	if !strings.Contains(plain(m.footerView()), "ctrl+k commit") {
 		t.Errorf("the footer does not advertise the configured key:\n%s", m.footerView())
 	}
 }
@@ -41,7 +41,7 @@ func TestWithAIDisablesTheGenerator(t *testing.T) {
 	}
 
 	m, _ = m.press(t, "c")
-	if strings.Contains(m.View(), "ctrl+g") {
+	if strings.Contains(plain(m.View()), "ctrl+g") {
 		t.Error("a disabled generator should not be advertised")
 	}
 }

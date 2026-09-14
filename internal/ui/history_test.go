@@ -204,7 +204,7 @@ func TestHistoryOfAnotherBranchFromTheBranchList(t *testing.T) {
 	if got := commitSubjects(m.commits); !slices.Equal(got, want) {
 		t.Errorf("commits = %v, want %v", got, want)
 	}
-	if !strings.Contains(m.View(), "feature") {
+	if !strings.Contains(plain(m.View()), "feature") {
 		t.Error("the view does not say which ref it is showing")
 	}
 }
@@ -233,7 +233,7 @@ func TestHistoryCursorMovesAndDetailFollows(t *testing.T) {
 	if got := m.commits[m.commitCursor].Subject; got != "feat: second" {
 		t.Errorf("after j the cursor is on %q, want feat: second", got)
 	}
-	if !strings.Contains(m.View(), "two.txt") {
+	if !strings.Contains(plain(m.View()), "two.txt") {
 		t.Error("the detail pane does not show the selected commit's file")
 	}
 }
@@ -261,7 +261,7 @@ func TestSelectingCommitsAdvancesTheCursor(t *testing.T) {
 	if got := commitSubjects(m.pickedCommits()); !slices.Equal(got, []string{"feat: third", "feat: second"}) {
 		t.Errorf("selection = %v, want the top two commits", got)
 	}
-	if !strings.Contains(m.View(), "2 commits selected") {
+	if !strings.Contains(plain(m.View()), "2 commits selected") {
 		t.Error("the view does not show how many commits are selected")
 	}
 
@@ -351,7 +351,7 @@ func TestCherryPickOntoAnotherBranchChecksItOut(t *testing.T) {
 	m, _ = m.press(t, "y")
 	m = m.selectTarget(t, "target")
 
-	if !strings.Contains(m.View(), "checked out first") {
+	if !strings.Contains(plain(m.View()), "checked out first") {
 		t.Error("the dialog does not warn that the target will be checked out")
 	}
 
@@ -388,7 +388,7 @@ func TestCherryPickConflictUsesTheOperationDialog(t *testing.T) {
 	if m.opState != git.OpCherryPick {
 		t.Fatalf("opState = %q, want %q", m.opState, git.OpCherryPick)
 	}
-	if !strings.Contains(m.footerView(), "resolve cherry-pick") {
+	if !strings.Contains(plain(m.footerView()), "resolve cherry-pick") {
 		t.Errorf("footer does not offer to resolve:\n%s", m.footerView())
 	}
 

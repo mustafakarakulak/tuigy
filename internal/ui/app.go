@@ -40,6 +40,10 @@ const historyPage = 150
 // is requested.
 const historyPrefetch = 20
 
+// horizontalStep is how far one keypress scrolls a diff sideways: far enough to
+// make progress through an indented line, short enough not to lose your place.
+const horizontalStep = 8
+
 const (
 	headerHeight = 3 // repository line, tab row, rule
 	footerHeight = 1
@@ -136,7 +140,9 @@ type Model struct {
 	listOff int
 	diff    viewport.Model
 	diffKey string
-	focus   pane
+	// diffHunks holds the line offsets of the hunk headers in the diff pane.
+	diffHunks []int
+	focus     pane
 
 	// The help screen scrolls: on a short terminal it would otherwise be
 	// impossible to reach the shortcuts near the bottom.
@@ -538,8 +544,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case diffMsg:
 		// Stale requests that lost the race are dropped.
 		if msg.key == m.diffKey {
-			m.diff.SetContent(renderDiff(msg.text, m.diffW))
+			rendered := renderDiff(msg.text)
+			m.diff.SetContent(rendered.content)
+			m.diffHunks = rendered.hunks
 			m.diff.GotoTop()
+			m.diff.SetXOffset(0)
 		}
 		return m, nil
 
