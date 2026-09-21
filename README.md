@@ -288,6 +288,13 @@ When local changes block a branch switch, tuigy offers to stash them and says so
 stashes on its own. A merge into a branch you are not on says beforehand whether it can be
 written straight to the ref or has to check that branch out and leave you there.
 
+## Design and decisions
+
+[docs/](docs) holds the architecture notes and the decision records: why tuigy runs the
+git binary rather than a library, why it polls, why `pull` refuses to merge, and what
+it is deliberately not. Worth reading before changing how something works, or before
+proposing something new.
+
 ## Development
 
 Nothing here needs `make` — `go build ./...` and `go test ./...` work on their own. The

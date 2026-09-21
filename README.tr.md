@@ -291,6 +291,13 @@ söyler; kendi başına asla stash'lemez. Üzerinde olmadığın bir branch'e me
 ref'e mi yazılabileceğini yoksa o branch'i checkout edip seni orada mı bırakacağını
 önceden söyler.
 
+## Tasarım ve kararlar
+
+[docs/](docs) altında mimari notları ve karar kayıtları var: tuigy neden kütüphane
+yerine git binary'sini çalıştırıyor, neden yoklama yapıyor, `pull` neden merge etmeyi
+reddediyor ve bilinçli olarak neyi yapmıyor. Bir şeyin çalışma biçimini değiştirmeden
+ya da yeni bir şey önermeden önce okumaya değer. (Kayıtlar, kod gibi, İngilizce.)
+
 ## Geliştirme
 
 Buradaki hiçbir şey `make` gerektirmez — `go build ./...` ve `go test ./...` kendi başına
