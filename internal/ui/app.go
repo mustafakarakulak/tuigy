@@ -105,6 +105,7 @@ const (
 	modalConfirm
 	modalSettings
 	modalProjects
+	modalPalette
 	modalHelp
 )
 
@@ -186,6 +187,11 @@ type Model struct {
 	projects      []config.Project
 	projectCursor int
 	projectFilter string
+
+	// Command palette.
+	paletteFilter string
+	paletteCursor int
+	paletteOff    int
 
 	// Changes tab.
 	rows    []row

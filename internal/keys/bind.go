@@ -81,6 +81,7 @@ func (m *Map) bindings() map[string]*key.Binding {
 		"terminal-leave": &m.Detach,
 
 		"projects": &m.Projects,
+		"palette":  &m.Palette,
 
 		"settings": &m.Settings,
 		"refresh":  &m.Refresh,

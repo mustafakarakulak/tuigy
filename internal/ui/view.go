@@ -167,6 +167,8 @@ func (m Model) bodyView() string {
 		return m.center(m.settingsBox(), bodyH)
 	case modalProjects:
 		return m.center(m.projectsBox(), bodyH)
+	case modalPalette:
+		return m.center(m.paletteBox(), bodyH)
 	case modalOperation:
 		return m.center(m.operationBox(), bodyH)
 	case modalConfirm:
@@ -522,7 +524,7 @@ func (m Model) helpContent() string {
 		{"Remote", []key.Binding{m.keys.Fetch, m.keys.FetchAll, m.keys.Pull, m.keys.Push}},
 		{"Terminal and projects", []key.Binding{m.keys.Terminal, m.keys.Detach, m.keys.TerminalClose, m.keys.Projects}},
 		{"Conflicts", []key.Binding{m.keys.Merge, m.keys.Continue, m.keys.Abort}},
-		{"Commit and general", []key.Binding{m.keys.Commit, m.keys.Amend, m.generateBinding(), m.keys.Submit, m.keys.Settings, m.keys.Refresh, m.keys.Help, m.keys.Quit}},
+		{"Commit and general", []key.Binding{m.keys.Commit, m.keys.Amend, m.generateBinding(), m.keys.Submit, m.keys.Palette, m.keys.Settings, m.keys.Refresh, m.keys.Help, m.keys.Quit}},
 	}
 
 	render := func(groups []group) string {
@@ -634,6 +636,9 @@ func (m Model) hints() hintSet {
 			[]key.Binding{m.keys.Cancel},
 		}
 
+	case modalPalette:
+		return m.paletteHints()
+
 	case modalOperation:
 		return hintSet{
 			[]key.Binding{m.keys.Continue, m.keys.Abort},
@@ -664,7 +669,7 @@ func (m Model) hints() hintSet {
 	if m.shell != nil {
 		set.actions = append(set.actions, m.keys.TerminalClose)
 	}
-	set.actions = append(set.actions, m.keys.Projects)
+	set.actions = append(set.actions, m.keys.Projects, m.keys.Palette)
 	return set
 }
 

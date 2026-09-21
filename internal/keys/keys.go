@@ -82,6 +82,12 @@ type Map struct {
 
 	Projects key.Binding
 
+	// Palette opens the command list. It is the way to reach an action whose
+	// key you do not remember, so it is the one key that has to be guessable:
+	// ":" is where a vim user already types a command, and tuigy is already
+	// vim-flavoured enough for that to be the first thing tried.
+	Palette key.Binding
+
 	Settings key.Binding
 	Refresh  key.Binding
 	Help     key.Binding
@@ -165,6 +171,7 @@ func Default() Map {
 		Detach: key.NewBinding(key.WithKeys("ctrl+o"), key.WithHelp("ctrl+o", "leave the terminal")),
 
 		Projects: key.NewBinding(key.WithKeys("ctrl+p"), key.WithHelp("ctrl+p", "switch project")),
+		Palette:  key.NewBinding(key.WithKeys(":"), key.WithHelp(":", "commands")),
 
 		Settings: key.NewBinding(key.WithKeys(","), key.WithHelp(",", "settings")),
 		Refresh:  key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),

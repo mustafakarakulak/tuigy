@@ -66,6 +66,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleSettingsKey(msg)
 	case modalProjects:
 		return m.handleProjectsKey(msg)
+	case modalPalette:
+		return m.handlePaletteKey(msg)
 	case modalOperation:
 		return m.handleOperationKey(msg)
 	case modalConfirm:
@@ -132,6 +134,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.Projects):
 		return m.openProjects()
+
+	case key.Matches(msg, m.keys.Palette):
+		return m.openPalette()
 
 	case key.Matches(msg, m.keys.StashPush):
 		return m.openStashPush()

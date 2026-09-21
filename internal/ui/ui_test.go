@@ -83,6 +83,7 @@ func TestViewFitsTerminal(t *testing.T) {
 		{"commit", []string{"esc", "c"}},
 		{"discard confirm", []string{"esc", "j", "d"}},
 		{"help", []string{"esc", "?"}},
+		{"palette", []string{"esc", ":"}},
 	}
 
 	for _, size := range []struct{ w, h int }{{120, 32}, {80, 24}, {200, 60}, {60, 12}, {40, 10}} {
