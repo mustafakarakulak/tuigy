@@ -91,37 +91,22 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openSettings()
 
 	case key.Matches(msg, m.keys.Refresh):
-		m.statusFP = "" // clear the fingerprint so the next result is always applied
-		return m, m.reload()
+		return m.refreshEverything()
 
 	case key.Matches(msg, m.keys.TabFiles):
-		m.clearFilter()
-		m.tab = tabFiles
-		m.focus = paneList
-		if m.allFiles == nil {
-			return m, m.loadFiles()
-		}
-		return m, m.applyFilter()
+		return m.showTab(tabFiles)
 
 	case key.Matches(msg, m.keys.TabChanges):
-		m.clearFilter()
-		m.tab = tabChanges
-		return m, m.applyFilter()
+		return m.showTab(tabChanges)
 
 	case key.Matches(msg, m.keys.TabBranches):
-		m.clearFilter()
-		m.tab = tabBranches
-		return m, m.loadBranches()
+		return m.showTab(tabBranches)
 
 	case key.Matches(msg, m.keys.TabHistory):
-		m.clearFilter()
-		m.tab = tabHistory
-		return m, m.showHistory("")
+		return m.showTab(tabHistory)
 
 	case key.Matches(msg, m.keys.TabStashes):
-		m.clearFilter()
-		m.tab = tabStashes
-		return m, m.loadStashes()
+		return m.showTab(tabStashes)
 
 	case key.Matches(msg, m.keys.Filter):
 		// Filtering narrows a list, so it belongs to the list, not the pane
@@ -143,11 +128,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openTerminal()
 
 	case key.Matches(msg, m.keys.TerminalClose):
-		if m.shell != nil {
-			m.closeTerminal()
-			return m, m.syncDiff()
-		}
-		return m, nil
+		return m.closeTerminalPane()
 
 	case key.Matches(msg, m.keys.Projects):
 		return m.openProjects()
@@ -213,6 +194,82 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleDiffKey(msg)
 	}
 	return m.handleFilesKey(msg)
+}
+
+// unstageSelection takes the file under the cursor back out of the index.
+func (m Model) unstageSelection() (tea.Model, tea.Cmd) {
+	if r, ok := m.selected(); ok {
+		return m, m.unstage(r)
+	}
+	return m, nil
+}
+
+// generateCommitMessage opens the commit view and starts writing the message.
+//
+// Outside that view this is a whole action rather than a modifier, which is why
+// it opens the view first rather than doing nothing.
+func (m Model) generateCommitMessage() (tea.Model, tea.Cmd) {
+	next, cmd := m.openCommit()
+	opened := next.(Model)
+	if opened.modal != modalCommit {
+		return opened, cmd
+	}
+
+	generating, generate := opened.generateMessage()
+	return generating, tea.Batch(cmd, generate)
+}
+
+// showBranchHistory opens the history of the branch under the cursor.
+func (m Model) showBranchHistory() (tea.Model, tea.Cmd) {
+	b, ok := m.selectedBranch()
+	if !ok {
+		return m, nil
+	}
+	m.tab = tabHistory
+	return m, m.showHistory(b.Name)
+}
+
+// closeTerminalPane ends the shell session and gives the rows back.
+func (m Model) closeTerminalPane() (tea.Model, tea.Cmd) {
+	if m.shell == nil {
+		return m, nil
+	}
+	m.closeTerminal()
+	return m, m.syncDiff()
+}
+
+// showTab moves to a tab and starts whatever it needs loaded.
+//
+// It is a method rather than five cases in the key switch because the command
+// palette reaches the same five places, and a tab that loaded its contents only
+// when a number was pressed would be empty when it was arrived at any other way.
+func (m Model) showTab(t tab) (tea.Model, tea.Cmd) {
+	m.clearFilter()
+	m.tab = t
+
+	switch t {
+	case tabFiles:
+		m.focus = paneList
+		if m.allFiles == nil {
+			return m, m.loadFiles()
+		}
+		return m, m.applyFilter()
+	case tabBranches:
+		return m, m.loadBranches()
+	case tabHistory:
+		return m, m.showHistory("")
+	case tabStashes:
+		return m, m.loadStashes()
+	default:
+		return m, m.applyFilter()
+	}
+}
+
+// refreshEverything clears the fingerprint so that the next status is always
+// applied, rather than dropped as unchanged.
+func (m Model) refreshEverything() (tea.Model, tea.Cmd) {
+	m.statusFP = ""
+	return m, m.reload()
 }
 
 // copySelection puts whatever the cursor is on into the clipboard: the thing
@@ -429,10 +486,7 @@ func (m Model) handleFilesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, m.stage()
 
 	case key.Matches(msg, m.keys.Unstage):
-		if r, ok := m.selected(); ok {
-			return m, m.unstage(r)
-		}
-		return m, nil
+		return m.unstageSelection()
 
 	case key.Matches(msg, m.keys.StageAll):
 		return m, runOp("staging everything", "staged all changes", m.repo.StageAll)
@@ -450,16 +504,7 @@ func (m Model) handleFilesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openCommit()
 
 	case key.Matches(msg, m.keys.Generate):
-		// Outside the commit view this is a whole action rather than a
-		// modifier: open the view and start writing the message.
-		next, cmd := m.openCommit()
-		opened := next.(Model)
-		if opened.modal != modalCommit {
-			return opened, cmd
-		}
-
-		generating, generate := opened.generateMessage()
-		return generating, tea.Batch(cmd, generate)
+		return m.generateCommitMessage()
 
 	case key.Matches(msg, m.keys.Amend):
 		return m, m.loadAmendMessage()
@@ -792,12 +837,7 @@ func (m Model) handleBranchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.askDeleteBranch()
 
 	case key.Matches(msg, m.keys.History):
-		b, ok := m.selectedBranch()
-		if !ok {
-			return m, nil
-		}
-		m.tab = tabHistory
-		return m, m.showHistory(b.Name)
+		return m.showBranchHistory()
 	}
 
 	return m, nil
