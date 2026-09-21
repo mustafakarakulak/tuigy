@@ -10,14 +10,15 @@ cmd/tuigy        the command: flags, configuration, starting the program
 internal/git     every call to git, and the types its output is parsed into
 internal/ui      the interface: model, update, view
 internal/keys    every key binding, in one place
-internal/config  the optional YAML file
+internal/config  the optional YAML file, and the remembered projects
 internal/editor  which editor to open a file with
 internal/ai      commit messages from a coding agent
+internal/term    a shell on a pseudo-terminal, and the screen it has drawn
 ```
 
-The dependency direction is one-way: `ui` uses `git`, `keys`, `config`, `editor` and
-`ai`; none of them know about `ui`. `git` knows nothing about any of the others, which
-is what makes it testable against real repositories without a terminal.
+The dependency direction is one-way: `ui` uses `git`, `keys`, `config`, `editor`, `ai`
+and `term`; none of them know about `ui`. `git` knows nothing about any of the others,
+which is what makes it testable against real repositories without a terminal.
 
 ## The git layer
 
@@ -37,12 +38,13 @@ tracking summary in `for-each-ref` — the command runs under a C locale.
 
 ## The interface
 
-One `ui.Model` holds everything. Four tabs share it rather than each owning a
+One `ui.Model` holds everything. Five tabs share it rather than each owning a
 sub-model: they all describe the same repository, and the header, footer and status
-are common to all of them.
+are common to all of them. The repository itself can be replaced underneath them —
+see [0017](decisions/0017-projects-are-remembered.md).
 
 ```
-Init        load status, load branches, start the tick
+Init        load status, load branches, record the project, start the tick
 Update      one switch: window size, tick, the result of a git call, a key press
 View        header · body (per tab, or a dialog) · footer
 ```
@@ -66,6 +68,21 @@ Every pane and dialog is trimmed to its own bounds before being drawn, because
 lipgloss pads a box up to a size but does not trim what overflows it. One long line
 would otherwise widen the whole layout and push the footer off screen. See
 [0010](decisions/0010-clip-every-pane.md).
+
+The body is shared between the two panes and the terminal band underneath them.
+`splitBody` is the one place that decides how, and it guarantees both halves stay tall
+enough to draw a bordered box at every terminal size. See
+[0016](decisions/0016-the-terminal-is-a-band.md).
+
+### The terminal
+
+`internal/term` runs the shell on a pseudo-terminal and keeps a real emulated screen
+rather than a log of bytes, because the things people run in a repository redraw
+themselves. Three goroutines meet in a `Session`: one reading the child's output into
+the emulator, one carrying encoded keystrokes back to it, and the interface rendering
+the screen. Screen state is behind a mutex; the input pipe has its own
+synchronisation and is deliberately outside it, so a keystroke never waits on a
+redraw.
 
 ## Testing
 

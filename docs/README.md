@@ -25,11 +25,18 @@ Written for whoever picks this up next, including the author six months from now
 | [11](decisions/0011-cursor-behaviour.md) | The cursor holds still for the agent and steps aside for the user |
 | [12](decisions/0012-review-marks-expire.md) | Review marks expire when the file changes |
 | [13](decisions/0013-pin-the-coverage-toolchain.md) | Pin the Go version the coverage floor is measured with |
-| [14](decisions/0014-what-tuigy-is-not.md) | tuigy is a git tool, not an IDE |
+| [14](decisions/0014-what-tuigy-is-not.md) | tuigy is a git tool, not an IDE *(superseded in part by 15)* |
+| [15](decisions/0015-a-workspace-around-the-git-tool.md) | A workspace around the git tool |
+| [16](decisions/0016-the-terminal-is-a-band.md) | The terminal is a band, and reserves one key |
+| [17](decisions/0017-projects-are-remembered.md) | Every repository is remembered, and switching happens in place |
+| [18](decisions/0018-bindings-are-changed-where-they-are-read.md) | Key bindings are changed where they are read |
 
-Start with [14](decisions/0014-what-tuigy-is-not.md) if you are deciding whether
-something belongs in tuigy at all, and [1](decisions/0001-drive-git-by-shelling-out.md)
-if you are changing how it talks to git.
+Start with [15](decisions/0015-a-workspace-around-the-git-tool.md) if you are deciding
+whether something belongs in tuigy at all, and then with
+[14](decisions/0014-what-tuigy-is-not.md), which it supersedes in part and which still
+holds the reasoning it was measured against.
+[1](decisions/0001-drive-git-by-shelling-out.md) is where to start if you are changing
+how tuigy talks to git.
 
 These are in English for the same reason the code is: the project is open to
 contributors who do not read Turkish. [README.tr.md](../README.tr.md) covers using

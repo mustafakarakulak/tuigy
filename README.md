@@ -8,8 +8,10 @@ tuigy is built for developers working alongside AI coding agents. Run your agent
 terminal pane and tuigy in another: the file list and diffs refresh on their own as the
 agent writes, so you can review, stage and commit without touching an IDE.
 
-It is deliberately **not** a full Git client. The goal is to make the handful of
-operations you actually perform every day as fast and as obvious as possible.
+It is deliberately **not** a full Git client, and it does not edit files. What it does
+do is keep the rest of the loop on one screen: the repository tree beside the diff, a
+shell in a band underneath to run the tests in, and every repository you work in one
+keystroke away.
 
 ## Status
 
@@ -42,6 +44,14 @@ Everything on the original plan is in. Working today:
 - review marks: tick off files as you read an agent's changes, and the tick disappears
   again if the file is rewritten underneath you
 - filter any list with `/`, and copy a path, branch, commit hash or stash ref with `Y`
+- a settings screen for the theme and for every key binding, changed by pressing the
+  key you want and written to the configuration file as you go
+- files view: a tree of everything git tracks, with the file itself in the pane beside
+  it; fold one folder, a folder and everything inside it, or the whole tree
+- an embedded shell in a band under both panes, opened in the repository root, so a
+  test run and the files it is about are on screen together
+- a project switcher over every repository tuigy has been opened in, switching in place
+  without restarting
 - themes and key bindings you can change
 
 ## Install
@@ -54,7 +64,8 @@ and `git restore`). CI runs the test suite against git 2.30 and current git, on
 Linux and macOS.
 
 Windows is not supported: opening a file in your editor and generating a commit
-message both run through a POSIX shell.
+message both run through a POSIX shell, and the terminal band is a POSIX
+pseudo-terminal.
 
 With Go 1.24.2 or newer:
 
@@ -77,7 +88,7 @@ Run `tuigy` anywhere inside a Git repository.
 
 | Key | Action |
 | --- | --- |
-| `1` `2` `3` `4` | changes / branches / history / stashes tab |
+| `1` `2` `3` `4` `5` | files / changes / branches / history / stashes tab |
 | `↑` `↓` / `k` `j` | move |
 | `g` / `G` | jump to first / last |
 | `ctrl+d` / `ctrl+u` | scroll the diff or detail pane |
@@ -87,10 +98,21 @@ Run `tuigy` anywhere inside a Git repository.
 | `esc` | close a dialog, leave a pane, clear a filter |
 | `/` | filter the list you are on |
 | `Y` | copy what the cursor is on (path, branch, commit hash, stash) |
-| `,` | settings: pick a theme, see where everything else lives |
+| `,` | settings: the theme, and which key does what |
 | `?` | help (scrollable) |
 | `r` | refresh |
 | `q` | quit |
+
+Files tab:
+
+| Key | Action |
+| --- | --- |
+| `→` / `l` | open the folder under the cursor |
+| `←` / `h` | close it, or step out to the folder you are in |
+| `+` / `-` | open / close that folder and everything inside it |
+| `L` / `H` | open / close the whole tree |
+| `enter` | open a folder, or read the file in the pane beside it |
+| `e` | open the file in your editor |
 
 Changes tab:
 
@@ -142,6 +164,10 @@ Anywhere:
 | `f` / `F` | fetch / fetch all remotes |
 | `p` / `P` | pull / push |
 | `m` | while a merge or cherry-pick is unfinished: continue or abort it |
+| `t` | open the terminal band, or go back to it |
+| `ctrl+o` | leave the terminal — the one key the shell never receives |
+| `T` | close the terminal band |
+| `ctrl+p` | switch to another repository |
 
 Staging a conflicted file marks it as resolved, the same as `git add`.
 
@@ -149,11 +175,21 @@ Staging a conflicted file marks it as resolved, the same as `git add`.
 
 tuigy works with no configuration at all.
 
-Press `,` to change the theme: the whole view is repainted as you move through
-them, and `enter` writes the choice to your configuration file. That screen also
-says where the file is and what else lives in it.
+Press `,` for the two things worth changing from inside:
 
-For everything else:
+- **Theme.** The whole view is repainted as you move through the list, because a
+  colour scheme is not something anyone can judge from its name. `enter` keeps it.
+- **Key bindings.** `tab` reaches the page. It lists all 63 actions — `/` narrows the
+  list — and `enter` waits for the keystroke you want to give to the one under the
+  cursor. `r` puts the default back. Each change takes effect at once and is written
+  to your configuration file as you make it.
+
+A key already used elsewhere is reported rather than refused: `enter` checks out a
+branch, pops a stash and confirms a dialog, and no two of those are ever on screen at
+once. Two keystrokes are not yours to give away — `esc`, which is how you leave the
+prompt asking for one, and `ctrl+c`, which always quits.
+
+For the editor, individual colours and the commit message agent:
 
 ```sh
 tuigy --init-config   # write a documented configuration file
@@ -199,6 +235,11 @@ file and what is wrong with it, rather than starting up and quietly ignoring it.
 theme from the settings screen edits only that one line, so comments and anything else you
 wrote survive.
 
+One other file sits beside it: `projects.yml`, the list `ctrl+p` offers. tuigy writes it
+itself — it holds the path and name of each repository you have opened tuigy in, and
+nothing about their contents. There is nothing in it worth editing by hand, and deleting
+it loses nothing but the ordering.
+
 **Fonts are not tuigy's to set.** A terminal program writes characters; which typeface
 draws them belongs to your terminal emulator. What tuigy does choose is the handful of
 symbols it uses — arrows, bullets, box drawing — which need a font with reasonable
@@ -224,6 +265,47 @@ rewrites a file you already read has invalidated the reading, and a status poll 
 that on its own — the file is still just "modified".
 
 It is a note to yourself, not a gate. Nothing refuses to commit.
+
+## Reading the repository, not just the diff
+
+The files tab is a tree of what git tracks: every tracked file, plus untracked ones
+`.gitignore` does not exclude. Build output, `node_modules` and vendored dependencies
+are never in it, because they are not in the repository either.
+
+It opens with the way down to each changed file already unfolded, and a closed folder
+holding a change is marked, so where the work is is visible before anything is opened.
+`+` and `-` take a whole subtree in or put it away; `L` and `H` do it to the lot.
+
+The pane beside it shows the file, with line numbers — the thing you read a stack trace
+against. It is read-only: `e` still hands the file to your editor. Nothing in tuigy
+writes to a file's contents.
+
+## Running something without leaving
+
+`t` opens a shell in a band across the bottom, in the repository root. It sits under
+both panes rather than replacing either, so a test run and the files it is about are on
+screen at the same time.
+
+While it has the keyboard, **every key goes to the shell**, `ctrl+c` included — a shell
+you cannot interrupt is not a shell. One keystroke is reserved: `ctrl+o` hands the
+keyboard back to tuigy, and the footer shows nothing else for as long as the shell has
+it. `t` returns to whatever you left running; `T` closes the band; typing `exit` closes
+it too, and the repository is re-read on the way out.
+
+It is a real terminal, not a log: `vim`, a test watcher and an agent all redraw
+correctly, and resizing the window resizes what is inside it. What scrolled past is the
+running program's to reach — the band has no scrollback of its own.
+
+## Moving between repositories
+
+`ctrl+p` lists every repository tuigy has been opened in, most recent first. Type to
+narrow it, `enter` to switch, `D` to forget one.
+
+There is no step that saves a project: opening tuigy somewhere is what records it.
+Switching replaces the repository in the running process rather than restarting, so
+your theme, key bindings and editor carry over while everything describing the old
+repository — the cursor, a filter, the review marks — is dropped rather than left
+describing something that is no longer on screen.
 
 ## Which editor `e` opens
 
@@ -291,9 +373,11 @@ written straight to the ref or has to check that branch out and leave you there.
 ## Design and decisions
 
 [docs/](docs) holds the architecture notes and the decision records: why tuigy runs the
-git binary rather than a library, why it polls, why `pull` refuses to merge, and what
-it is deliberately not. Worth reading before changing how something works, or before
-proposing something new.
+git binary rather than a library, why it polls, why `pull` refuses to merge, and where
+the line is between a git tool and an editor. Worth reading before changing how
+something works, or before proposing something new —
+[15](docs/decisions/0015-a-workspace-around-the-git-tool.md) is the one that says what
+belongs in tuigy at all.
 
 ## Development
 

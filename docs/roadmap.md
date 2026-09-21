@@ -15,6 +15,16 @@ Everything on the original plan, plus a few things that were not on it:
 - live refresh, review marks, filtering, copying, themes, key bindings
 - commit messages from a coding agent
 
+And then, against [0014](decisions/0014-what-tuigy-is-not.md)'s own reasoning and with
+[0015](decisions/0015-a-workspace-around-the-git-tool.md) written to say why:
+
+- a repository tree of what git tracks, with the file itself in the pane beside it,
+  and folding by directory, by subtree or all at once
+- an embedded shell in a band across the bottom, under both panes
+- a project switcher over every repository tuigy has been opened in
+- a settings screen that changes key bindings as well as the theme, writing each one
+  to the configuration file as it is made
+
 ## Deliberately not built
 
 From the original specification's own list, and still out:
@@ -22,9 +32,11 @@ From the original specification's own list, and still out:
 advanced interactive rebase · a full conflict editor · blame · bisect · submodules ·
 a commit graph · tag management · force push · commit signing settings
 
-A file tree, an embedded terminal and a pull request dashboard have also been
-proposed and declined. See [0014](decisions/0014-what-tuigy-is-not.md) for the test
-each was measured against.
+A pull request dashboard has been proposed and declined, and editing a file is the
+line tuigy does not cross. See
+[0015](decisions/0015-a-workspace-around-the-git-tool.md) for the test each is
+measured against, and [0014](decisions/0014-what-tuigy-is-not.md) for the one it
+replaced.
 
 ## Next, roughly in order of value
 
@@ -38,15 +50,17 @@ sized and independent of everything else.
 **Opening a pull request for the current branch.** The tail of the push flow, through
 `gh`. Small. Not a dashboard.
 
-**Handing the terminal over.** A key that suspends tuigy, runs a shell or an agent in
-the real terminal, and refreshes on return. About thirty lines, reusing what `e` does.
-
 **Syntax highlighting in diffs.** Costs 2.1 MB of binary for chroma, and needs the
 added/removed colouring reworked onto backgrounds so syntax colours have somewhere to
 live. Worth doing after deciding how that should look.
 
-**A command palette.** Fuzzy search over all 52 actions, which would remove the
-question of which key does what entirely.
+**A command palette.** Fuzzy search over all 63 actions, which would remove the
+question of which key does what entirely. It has gone from a convenience to close to a
+requirement: the single-letter keys are spent, and the last two features to need one
+took `+` and `-`.
+
+**Scrollback in the terminal band.** What scrolled past is currently the running
+program's to reach. See [0016](decisions/0016-the-terminal-is-a-band.md).
 
 ## Distribution
 
@@ -58,4 +72,4 @@ it is:
   three times the bar
 - `go install` already works
 - Windows is not supported: opening an editor and generating a commit message both go
-  through a POSIX shell
+  through a POSIX shell, and the terminal band is a POSIX pseudo-terminal

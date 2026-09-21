@@ -1,6 +1,11 @@
 # 14. tuigy is a git tool, not an IDE
 
-Status: accepted
+Status: superseded in part by [15](0015-a-workspace-around-the-git-tool.md)
+
+The test this record sets, and its reasoning about the pull request dashboard, still
+hold. The file tree and the embedded terminal it declines were both later built, and
+the closing paragraph here asked for exactly the record that
+[15](0015-a-workspace-around-the-git-tool.md) is. Left as written.
 
 ## Context
 

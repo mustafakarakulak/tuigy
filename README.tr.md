@@ -10,8 +10,9 @@ terminal panelinde, tuigy'yi diğerinde çalıştırırsın: agent yazdıkça do
 diff'ler kendiliğinden tazelenir, böylece bir IDE'ye dokunmadan inceleyip stage'leyip
 commit'leyebilirsin.
 
-Bilinçli olarak **tam bir Git istemcisi değil**. Amaç, gerçekten her gün yaptığın bir
-avuç işlemi mümkün olan en hızlı ve en anlaşılır biçimde sunmak.
+Bilinçli olarak **tam bir Git istemcisi değil**, ve dosya düzenlemiyor. Yaptığı şey,
+döngünün geri kalanını tek ekranda tutmak: diff'in yanında repository ağacı, altında
+testleri çalıştıracağın bir kabuk, ve çalıştığın her repository bir tuş uzakta.
 
 ## Durum
 
@@ -45,6 +46,14 @@ avuç işlemi mümkün olan en hızlı ve en anlaşılır biçimde sunmak.
 - gözden geçirme işaretleri: agent'ın değişikliklerini okurken dosyaları işaretle; dosya
   altından yeniden yazılırsa işaret kendiliğinden düşer
 - `/` ile her listede filtreleme, `Y` ile yol, branch adı, commit hash'i veya stash ref'i kopyalama
+- tema ve bütün kısayollar için ayar ekranı: istediğin tuşa basarak değiştiriyorsun,
+  her değişiklik yapıldığı anda yapılandırma dosyasına yazılıyor
+- files görünümü: git'in izlediği her şeyin ağacı, dosyanın kendisi yanındaki panelde;
+  tek klasörü, bir klasörü tüm içeriğiyle ya da ağacın tamamını katlayabilirsin
+- iki panelin altında bir bantta gömülü kabuk, repository kökünde açılır; böylece testin
+  çıktısı ve konusu olan dosyalar aynı anda ekranda olur
+- tuigy'nin açıldığı her repository üzerinde proje değiştirici; yeniden başlatmadan,
+  yerinde geçiş
 - değiştirebildiğin temalar ve kısayollar
 
 ## Kurulum
@@ -57,7 +66,7 @@ tuigy `git` binary'sini kullanır, bu yüzden git 2.23 veya üstü gerekir (`git
 üzerinde çalıştırır.
 
 Windows desteklenmiyor: dosyayı editörde açmak ve commit mesajı üretmek POSIX kabuğundan
-geçiyor.
+geçiyor, terminal bandı da bir POSIX pseudo-terminal.
 
 Go 1.24.2 veya üstüyle:
 
@@ -79,7 +88,7 @@ go build -o tuigy ./cmd/tuigy
 
 | Tuş | İşlev |
 | --- | --- |
-| `1` `2` `3` `4` | changes / branches / history / stashes sekmesi |
+| `1` `2` `3` `4` `5` | files / changes / branches / history / stashes sekmesi |
 | `↑` `↓` / `k` `j` | gezin |
 | `g` / `G` | başa / sona git |
 | `ctrl+d` / `ctrl+u` | diff veya detay panelini kaydır |
@@ -89,10 +98,21 @@ go build -o tuigy ./cmd/tuigy
 | `esc` | diyaloğu kapat, panelden çık, filtreyi temizle |
 | `/` | bulunduğun listeyi filtrele |
 | `Y` | imlecin üzerindekini kopyala (yol, branch, commit hash'i, stash) |
-| `,` | ayarlar: tema seç, diğer her şeyin nerede olduğunu gör |
+| `,` | ayarlar: tema, ve hangi tuşun ne yaptığı |
 | `?` | yardım (kaydırılabilir) |
 | `r` | yenile |
 | `q` | çık |
+
+Files sekmesi:
+
+| Tuş | İşlev |
+| --- | --- |
+| `→` / `l` | imlecin üzerindeki klasörü aç |
+| `←` / `h` | klasörü kapat, ya da içinde bulunduğun klasöre çık |
+| `+` / `-` | o klasörü ve içindeki her şeyi aç / kapat |
+| `L` / `H` | ağacın tamamını aç / kapat |
+| `enter` | klasörü aç, ya da dosyayı yanındaki panelde oku |
+| `e` | dosyayı editöründe aç |
 
 Changes sekmesi:
 
@@ -144,6 +164,10 @@ Her yerde:
 | `f` / `F` | fetch / tüm remote'ları fetch |
 | `p` / `P` | pull / push |
 | `m` | yarım kalmış merge veya cherry-pick varken: sürdür ya da iptal et |
+| `t` | terminal bandını aç, ya da ona geri dön |
+| `ctrl+o` | terminalden çık — kabuğa hiç ulaşmayan tek tuş |
+| `T` | terminal bandını kapat |
+| `ctrl+p` | başka bir repository'ye geç |
 
 Çakışan bir dosyayı stage'lemek onu çözüldü olarak işaretler — `git add` ile aynı şey.
 
@@ -151,11 +175,21 @@ Her yerde:
 
 tuigy hiçbir yapılandırma olmadan çalışır.
 
-Temayı değiştirmek için `,` tuşuna bas: temalar arasında gezerken bütün görünüm yeniden
-boyanır, `enter` seçimi yapılandırma dosyana yazar. O ekran ayrıca dosyanın nerede
-olduğunu ve içinde başka nelerin yaşadığını söyler.
+İçeriden değiştirmeye değer iki şey için `,` tuşuna bas:
 
-Geri kalanı için:
+- **Tema.** Listede gezerken bütün görünüm yeniden boyanır, çünkü bir renk şemasını
+  kimse adına bakarak değerlendiremez. `enter` seçimi kalıcılaştırır.
+- **Kısayollar.** Sayfaya `tab` ile geçilir. 63 eylemin hepsini listeler — `/` listeyi
+  daraltır — ve `enter`, imlecin üzerindeki eyleme vermek istediğin tuşa basmanı
+  bekler. `r` varsayılanı geri koyar. Her değişiklik anında geçerli olur ve yaptığın
+  anda yapılandırma dosyana yazılır.
+
+Başka bir yerde kullanılan bir tuş reddedilmez, sadece söylenir: `enter` hem branch'e
+geçer, hem stash pop'lar, hem diyalog onaylar; bunların ikisi aynı anda ekranda olmaz.
+İki tuş senin verebileceğin tuşlar değil — tuş soran ekrandan çıkış yolu olan `esc`, ve
+her zaman çıkışı yapan `ctrl+c`.
+
+Editör, tek tek renkler ve commit mesajı agent'ı için:
 
 ```sh
 tuigy --init-config   # yorumlarla açıklanmış bir yapılandırma dosyası yaz
@@ -201,6 +235,11 @@ söyleyerek durdurur; başlayıp sessizce yok saymaz. Ayarlar ekranından tema k
 yalnızca o tek satırı düzenler, dolayısıyla yorumların ve yazdığın diğer her şey yerinde
 kalır.
 
+Yanında bir dosya daha durur: `ctrl+p`'nin sunduğu liste olan `projects.yml`. Onu tuigy
+kendi yazar — tuigy'yi açtığın her repository'nin yolunu ve adını tutar, içerikleri
+hakkında hiçbir şey tutmaz. İçinde elle düzenlemeye değer bir şey yok, silmek de
+sıralamadan başka bir şey kaybettirmez.
+
 **Font tuigy'nin ayarlayabileceği bir şey değil.** Terminal uygulaması karakter yazar;
 onları hangi yazı tipinin çizeceği terminal emülatörüne aittir. tuigy'nin seçtiği şey
 kullandığı bir avuç sembol — oklar, madde imleri, kutu çizgileri — ve bunlar makul Unicode
@@ -227,6 +266,44 @@ agent, o okumayı geçersiz kılmıştır — ve durum yoklaması bunu kendi ba�
 hâlâ sadece "değişmiş" görünür.
 
 Bu bir kapı değil, kendine bıraktığın not. Hiçbir şey commit'i reddetmez.
+
+## Sadece diff'i değil, repository'yi de okumak
+
+Files sekmesi git'in izlediklerinin ağacıdır: bütün takip edilen dosyalar, artı
+`.gitignore`'un dışlamadığı takipsizler. Derleme çıktısı, `node_modules` ve vendor'lanmış
+bağımlılıklar hiç görünmez, çünkü repository'de de yoklar.
+
+Ağaç, değişmiş her dosyaya giden yol açılmış hâlde gelir; içinde değişiklik olan kapalı
+bir klasör de işaretlenir, yani iş nerede olduğu hiçbir şey açmadan görünür. `+` ve `-`
+bir alt ağacın tamamını alır ya da kaldırır; `L` ve `H` aynısını ağacın tümüne yapar.
+
+Yanındaki panel dosyayı satır numaralarıyla gösterir — bir stack trace'i karşısında
+okuduğun şey. Salt okunurdur: `e` dosyayı yine editörüne devreder. tuigy'de hiçbir şey
+dosya içeriğine yazmaz.
+
+## Çıkmadan bir şey çalıştırmak
+
+`t` en altta, repository kökünde bir kabuk açar. İki panelin yerine geçmez, altlarına
+oturur; böylece testin çıktısı ile konusu olan dosyalar aynı anda ekranda olur.
+
+Klavye ondayken **her tuş kabuğa gider**, `ctrl+c` dahil — kesilemeyen bir kabuk kabuk
+değildir. Ayrılmış tek tuş var: `ctrl+o` klavyeyi tuigy'ye geri verir, ve kabuk
+klavyedeyken altbilgi başka hiçbir şey göstermez. `t` bıraktığın işe geri döner, `T`
+bandı kapatır; `exit` yazmak da kapatır, çıkarken repository yeniden okunur.
+
+Gerçek bir terminaldir, bir kayıt defteri değil: `vim`, bir test watcher'ı ve bir agent
+doğru çizilir, pencereyi yeniden boyutlandırmak içindekini de boyutlandırır. Yukarı kayıp
+giden şey çalışan programın kendi sorunudur — bandın kendine ait bir scrollback'i yok.
+
+## Repository'ler arasında gezinmek
+
+`ctrl+p`, tuigy'nin açıldığı her repository'yi en yeniden eskiye listeler. Daraltmak için
+yaz, geçmek için `enter`, listeden düşürmek için `D`.
+
+Projeyi kaydeden bir adım yok: tuigy'yi bir yerde açmak onu kaydeden şeydir. Geçiş,
+yeniden başlatmak yerine çalışan süreçteki repository'yi değiştirir; böylece teman,
+kısayolların ve editörün korunur, eski repository'yi tarif eden her şey — imleç, filtre,
+gözden geçirme işaretleri — ekranda olmayan bir şeyi tarif etmesin diye bırakılır.
 
 ## `e` tuşu hangi editörü açar
 
@@ -295,8 +372,11 @@ ref'e mi yazılabileceğini yoksa o branch'i checkout edip seni orada mı bırak
 
 [docs/](docs) altında mimari notları ve karar kayıtları var: tuigy neden kütüphane
 yerine git binary'sini çalıştırıyor, neden yoklama yapıyor, `pull` neden merge etmeyi
-reddediyor ve bilinçli olarak neyi yapmıyor. Bir şeyin çalışma biçimini değiştirmeden
-ya da yeni bir şey önermeden önce okumaya değer. (Kayıtlar, kod gibi, İngilizce.)
+reddediyor ve bir git aracıyla bir editör arasındaki çizgi nerede. Bir şeyin çalışma
+biçimini değiştirmeden ya da yeni bir şey önermeden önce okumaya değer; neyin tuigy'ye
+ait olduğunu söyleyen kayıt
+[15](docs/decisions/0015-a-workspace-around-the-git-tool.md). (Kayıtlar, kod gibi,
+İngilizce.)
 
 ## Geliştirme
 
