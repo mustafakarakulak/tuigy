@@ -174,6 +174,19 @@ func (m Model) bodyView() string {
 		return m.center(m.helpBox(), bodyH)
 	}
 
+	// Too short to show both: the shell is what was asked for most recently.
+	if m.shell != nil && m.panesH <= 0 {
+		return m.terminalBox()
+	}
+
+	panes := m.tabBody()
+	if m.shell == nil {
+		return panes
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, panes, m.terminalBox())
+}
+
+func (m Model) tabBody() string {
 	switch m.tab {
 	case tabFiles:
 		return m.filesBody()
@@ -188,63 +201,74 @@ func (m Model) bodyView() string {
 	}
 }
 
+// terminalBox is the shell drawn across the bottom of the body.
+//
+// It sits under both panes rather than replacing one, so that what a command
+// does to the repository is visible in the same frame as the command.
+func (m Model) terminalBox() string {
+	return paneStyle(m.termFocus).
+		Width(m.termW).Height(m.termH).
+		Render(fitPane(m.terminalPane(), m.termW, m.termH))
+}
+
+// listFocused says whether the list on the left has the keyboard.
+//
+// The terminal takes the keyboard without moving the focus, so that leaving the
+// shell puts you back exactly where you were rather than at the top of a list.
+func (m Model) listFocused() bool { return m.focus == paneList && !m.termFocus }
+
+// detailPane draws the right-hand side of a tab.
+func (m Model) detailPane(content string, focused bool) string {
+	return paneStyle(focused && !m.termFocus).
+		Width(m.diffW).Height(m.diffH).
+		Render(fitPane(content, m.diffW, m.diffH))
+}
+
 func (m Model) filesBody() string {
-	list := paneStyle(m.focus == paneList).
+	list := paneStyle(m.listFocused()).
 		Width(m.listW).Height(m.listH).
 		Render(fitPane(
 			renderFileTree(m.fileRows, m.fileCursor, m.fileOff, m.listW, m.listH,
 				changedPaths(m.status), m.expanded),
 			m.listW, m.listH))
 
-	detail := paneStyle(m.focus == paneDetail).
-		Width(m.diffW).Height(m.diffH).
-		Render(fitPane(m.preview.View(), m.diffW, m.diffH))
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, list, detail)
+	return lipgloss.JoinHorizontal(lipgloss.Top, list,
+		m.detailPane(m.preview.View(), m.focus == paneDetail))
 }
 
 func (m Model) stashesBody() string {
-	list := paneStyle(m.focus == paneList).
+	list := paneStyle(m.listFocused()).
 		Width(m.listW).Height(m.listH).
 		Render(fitPane(
 			renderStashList(m.stashes, m.stashCursor, m.stashOff, m.listW, m.listH),
 			m.listW, m.listH))
 
-	detail := paneStyle(m.focus == paneDetail).
-		Width(m.diffW).Height(m.diffH).
-		Render(fitPane(m.stashView.View(), m.diffW, m.diffH))
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, list, detail)
+	return lipgloss.JoinHorizontal(lipgloss.Top, list,
+		m.detailPane(m.stashView.View(), m.focus == paneDetail))
 }
 
 func (m Model) historyBody() string {
-	list := paneStyle(m.focus == paneList).
+	list := paneStyle(m.listFocused()).
 		Width(m.listW).Height(m.listH).
 		Render(fitPane(
 			renderCommitList(m.commits, m.commitCursor, m.commitOff, m.picked, m.listW, m.listH),
 			m.listW, m.listH))
 
-	detail := paneStyle(m.focus == paneDetail).
-		Width(m.diffW).Height(m.diffH).
-		Render(fitPane(m.detail.View(), m.diffW, m.diffH))
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, list, detail)
+	return lipgloss.JoinHorizontal(lipgloss.Top, list,
+		m.detailPane(m.detail.View(), m.focus == paneDetail))
 }
 
 func (m Model) changesBody() string {
-	list := paneStyle(m.focus == paneList).
+	list := paneStyle(m.listFocused()).
 		Width(m.listW).Height(m.listH).
 		Render(fitPane(renderList(m.rows, m.cursor, m.listOff, m.listW, m.listH, m.reviewed), m.listW, m.listH))
 
-	diff := paneStyle(m.focus == paneDetail).
-		Width(m.diffW).Height(m.diffH).
-		Render(fitPane(m.diff.View(), m.diffW, m.diffH))
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, list, diff)
+	return lipgloss.JoinHorizontal(lipgloss.Top, list,
+		m.detailPane(m.diff.View(), m.focus == paneDetail))
 }
 
 func (m Model) branchesBody() string {
-	list := paneStyle(true).
+	list := paneStyle(!m.termFocus).
 		Width(m.listW).Height(m.listH).
 		Render(fitPane(renderBranchList(m.branchRows, m.branchCur, m.branchOff, m.listW, m.listH), m.listW, m.listH))
 
@@ -253,11 +277,7 @@ func (m Model) branchesBody() string {
 		detail = renderBranchDetail(b, m.diffW)
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top,
-		list,
-		paneStyle(false).Width(m.diffW).Height(m.diffH).
-			Render(fitPane(detail, m.diffW, m.diffH)),
-	)
+	return lipgloss.JoinHorizontal(lipgloss.Top, list, m.detailPane(detail, false))
 }
 
 // center places a dialog in the body area, trimmed to what actually fits.
@@ -538,6 +558,7 @@ func (m Model) helpContent() string {
 		{"History", []key.Binding{m.keys.Pick, m.keys.CherryPick}},
 		{"Stashes", []key.Binding{m.keys.StashPush, m.keys.StashPop, m.keys.StashApply, m.dropStashBinding()}},
 		{"Remote", []key.Binding{m.keys.Fetch, m.keys.FetchAll, m.keys.Pull, m.keys.Push}},
+		{"Terminal", []key.Binding{m.keys.Terminal, m.keys.Detach, m.keys.TerminalClose}},
 		{"Conflicts", []key.Binding{m.keys.Merge, m.keys.Continue, m.keys.Abort}},
 		{"Commit and general", []key.Binding{m.keys.Commit, m.keys.Amend, m.generateBinding(), m.keys.Submit, m.keys.Settings, m.keys.Refresh, m.keys.Help, m.keys.Quit}},
 	}
@@ -618,6 +639,12 @@ type hintSet struct {
 // Nobody should have to memorise shortcuts; the relevant ones stay on screen,
 // and "?" reaches the rest.
 func (m Model) hints() hintSet {
+	// While the shell has the keyboard, the only key that means anything here
+	// is the one that takes it back.
+	if m.termFocus && m.shell != nil {
+		return hintSet{nil, []key.Binding{m.keys.Detach}}
+	}
+
 	switch m.modal {
 	case modalCommit:
 		actions := []key.Binding{m.keys.Submit}
@@ -663,7 +690,27 @@ func (m Model) hints() hintSet {
 	if m.opState != git.OpNone {
 		set.actions = append([]key.Binding{m.resolveBinding()}, set.actions...)
 	}
+
+	// The shell is reachable from every view, so it is offered once here rather
+	// than repeated in each tab's list. It goes last, which is also the first
+	// thing dropped on a narrow terminal.
+	set.actions = append(set.actions, m.terminalBinding())
+	if m.shell != nil {
+		set.actions = append(set.actions, m.keys.TerminalClose)
+	}
 	return set
+}
+
+// terminalBinding labels the terminal key for what it would do: start a shell,
+// or go back to the one already running in the pane.
+func (m Model) terminalBinding() key.Binding {
+	if m.shell == nil {
+		return m.keys.Terminal
+	}
+	return key.NewBinding(
+		key.WithKeys(m.keys.Terminal.Keys()...),
+		key.WithHelp(m.keys.Terminal.Help().Key, "back to the terminal"),
+	)
 }
 
 // foldSubtreeBinding and foldTreeBinding each put a pair of opposite keys in

@@ -74,6 +74,12 @@ type Map struct {
 	Copy       key.Binding
 	Filter     key.Binding
 
+	// Terminal opens the shell pane and hands it the keyboard; Detach takes the
+	// keyboard back; Close ends the session.
+	Terminal      key.Binding
+	TerminalClose key.Binding
+	Detach        key.Binding
+
 	Settings key.Binding
 	Refresh  key.Binding
 	Help     key.Binding
@@ -148,6 +154,13 @@ func Default() Map {
 		OpenEditor: key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "open in your editor")),
 		Copy:       key.NewBinding(key.WithKeys("Y"), key.WithHelp("Y", "copy")),
 		Filter:     key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
+
+		Terminal:      key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "terminal")),
+		TerminalClose: key.NewBinding(key.WithKeys("T"), key.WithHelp("T", "close terminal")),
+		// ctrl+o is the way back out of the shell, so it is the one keystroke
+		// the shell never receives. It is chosen because almost nothing binds
+		// it: ctrl+c, ctrl+d, ctrl+z and tab all have to reach the child.
+		Detach: key.NewBinding(key.WithKeys("ctrl+o"), key.WithHelp("ctrl+o", "leave the terminal")),
 
 		Settings: key.NewBinding(key.WithKeys(","), key.WithHelp(",", "settings")),
 		Refresh:  key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),

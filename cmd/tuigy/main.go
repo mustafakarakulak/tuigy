@@ -109,7 +109,13 @@ func run() error {
 
 	// AltScreen leaves the user's scrollback exactly as it was on exit.
 	p := tea.NewProgram(model, tea.WithAltScreen())
-	_, err = p.Run()
+	final, err := p.Run()
+
+	// A shell left running in the terminal pane is closed before we go, so the
+	// user gets their terminal back with nothing still holding on to it.
+	if m, ok := final.(ui.Model); ok {
+		m.Shutdown()
+	}
 	return err
 }
 

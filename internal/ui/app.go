@@ -19,6 +19,7 @@ import (
 	"github.com/mustafakarakulak/tuigy/internal/config"
 	"github.com/mustafakarakulak/tuigy/internal/git"
 	"github.com/mustafakarakulak/tuigy/internal/keys"
+	"github.com/mustafakarakulak/tuigy/internal/term"
 )
 
 // pollInterval is how often the status refreshes on its own.
@@ -48,6 +49,13 @@ const horizontalStep = 8
 const (
 	headerHeight = 3 // repository line, tab row, rule
 	footerHeight = 1
+
+	// minBoxHeight is the shortest a bordered box can be drawn: two border rows
+	// and a row of content between them.
+	minBoxHeight = 3
+	// terminalHeight is how tall the shell pane wants to be when there is room,
+	// which is enough to watch a test run without it being the whole screen.
+	terminalHeight = 12
 )
 
 type tab int
@@ -150,6 +158,17 @@ type Model struct {
 	preview    viewport.Model
 	previewKey string
 
+	// Terminal pane. shell is nil until it is opened, and termFocus says whether
+	// the keyboard belongs to it rather than to tuigy.
+	//
+	// It is a band across the bottom rather than a third column, and it takes
+	// its height from the panes above rather than replacing one of them: the
+	// point of running something here is to watch what it does to the files
+	// you are already looking at.
+	shell        *term.Session
+	termFocus    bool
+	termW, termH int
+
 	// Changes tab.
 	rows    []row
 	cursor  int
@@ -204,6 +223,8 @@ type Model struct {
 
 	listW, listH int
 	diffW, diffH int
+	// panesH is the height the two panes share, which the shell takes from.
+	panesH int
 
 	modal modal
 
@@ -608,6 +629,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.preview.GotoTop()
 		}
 		return m, nil
+
+	case termStartedMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			return m, nil
+		}
+		m.err = nil
+		m.shell = msg.session
+		// A dialog opened while the shell was starting is drawn over the body,
+		// so the keyboard stays with the dialog rather than going to something
+		// that is not on screen.
+		m.termFocus = m.modal == modalNone
+		// The panes above give up the rows the shell is drawn in.
+		m.layout()
+		return m, waitForTerminal(m.shell)
+
+	case termOutputMsg:
+		// A signal from a session that has since been closed is not a reason to
+		// redraw anything.
+		if msg.session != m.shell {
+			return m, nil
+		}
+		return m, waitForTerminal(m.shell)
+
+	case termExitedMsg:
+		if msg.session != m.shell {
+			return m, nil
+		}
+		// Typing "exit" means the pane is finished with, so it goes and the
+		// panes above take their rows back.
+		m.closeTerminal()
+		// Something was almost certainly run in there.
+		m.statusFP = ""
+		return m, tea.Batch(m.reload(), m.loadFiles())
 
 	case stashesMsg:
 		return m, m.applyStashes(msg.stashes)
@@ -1231,14 +1286,24 @@ func (m *Model) layout() {
 		listW = max(m.width/2, 12)
 	}
 
+	panesH, termBoxH := splitBody(bodyH, m.shell != nil)
+	m.panesH = panesH
+
 	// The border costs each pane two columns and two rows.
-	m.listW, m.listH = max(listW-2, 1), max(bodyH-2, 1)
-	m.diffW, m.diffH = max(m.width-listW-2, 1), max(bodyH-2, 1)
+	m.listW, m.listH = max(listW-2, 1), max(panesH-2, 1)
+	m.diffW, m.diffH = max(m.width-listW-2, 1), max(panesH-2, 1)
 
 	m.diff.Width, m.diff.Height = m.diffW, m.diffH
 	m.detail.Width, m.detail.Height = m.diffW, m.diffH
 	m.stashView.Width, m.stashView.Height = m.diffW, m.diffH
 	m.preview.Width, m.preview.Height = m.diffW, m.diffH
+
+	m.termW, m.termH = max(m.width-2, 1), max(termBoxH-2, 1)
+	// The shell is told the size it is actually drawn at, so a program inside
+	// it redraws to fit rather than to the size it started with.
+	if m.shell != nil {
+		m.shell.Resize(m.termW, m.termH)
+	}
 
 	m.commit.SetWidth(max(m.width/2, 20))
 	m.commit.SetHeight(max(min(bodyH-10, 8), 3))
@@ -1251,6 +1316,26 @@ func (m *Model) layout() {
 	m.ensureVisible()
 	m.ensureBranchVisible()
 	m.ensureFileVisible()
+}
+
+// splitBody shares the body between the panes and the shell underneath them.
+//
+// The shell gets a fixed band rather than a fraction: it is being watched, not
+// read, and a terminal that grows with the window would push the diff out of
+// the way on exactly the large screens where there is room for both.
+func splitBody(bodyH int, terminal bool) (panesH, termH int) {
+	if !terminal {
+		return bodyH, 0
+	}
+	// Too short for two boxes: the shell is what was just asked for, so it
+	// takes what there is.
+	if bodyH < minBoxHeight*2 {
+		return 0, bodyH
+	}
+	// Never more than half the body: on a short terminal a fixed band would be
+	// most of the screen, and the panes it was opened underneath would be gone.
+	termH = clamp(min(terminalHeight, bodyH/2), minBoxHeight, bodyH-minBoxHeight)
+	return bodyH - termH, termH
 }
 
 func (m *Model) ensureVisible() {

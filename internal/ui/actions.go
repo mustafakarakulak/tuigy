@@ -27,6 +27,14 @@ import (
 type amendPrefillMsg struct{ message string }
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// While the shell has the keyboard every key belongs to it, ctrl+c
+	// included: interrupting what is running in there is the whole point of
+	// having it. One keystroke is reserved to get back out, and the footer
+	// says which for as long as this is true.
+	if m.termFocus && m.shell != nil {
+		return m.handleTerminalKey(msg)
+	}
+
 	// ctrl+c always quits, even from inside a modal.
 	if msg.Type == tea.KeyCtrlC {
 		return m, tea.Quit
@@ -123,6 +131,16 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.clearFilter()
 			return m, m.applyFilter()
 		}
+
+	case key.Matches(msg, m.keys.Terminal):
+		return m.openTerminal()
+
+	case key.Matches(msg, m.keys.TerminalClose):
+		if m.shell != nil {
+			m.closeTerminal()
+			return m, m.syncDiff()
+		}
+		return m, nil
 
 	case key.Matches(msg, m.keys.StashPush):
 		return m.openStashPush()
