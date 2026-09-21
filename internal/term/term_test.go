@@ -8,6 +8,28 @@ import (
 	uv "github.com/charmbracelet/ultraviolet"
 )
 
+// readyMarker is what the tests wait for instead of a prompt.
+//
+// The prompt is the one thing on that screen that is not tuigy's: a user's
+// shell says "$", root's says "#", and a zsh says neither. CI runs these in a
+// container as root, so waiting for "$" was waiting for the test runner to be
+// somebody in particular. Making the shell say something only it could have
+// said tests the same thing and asks nothing of whoever runs it.
+const readyMarker = "tuigyready"
+
+// waitReady waits until the shell is up and running commands.
+//
+// The marker is written split so that the command echoed back on screen reads
+// "echo tuigy”ready" and only its output reads "tuigyready": waiting for the
+// marker then cannot match the typing of it.
+func waitReady(t *testing.T, s *Session) {
+	t.Helper()
+
+	s.SendText("echo tuigy''ready")
+	s.SendKey(uv.KeyPressEvent{Code: uv.KeyEnter})
+	waitFor(t, s, readyMarker)
+}
+
 // waitFor polls the screen until want appears on it, which is the only honest
 // way to test a child process: there is no moment at which its output is known
 // to have arrived.
@@ -119,7 +141,7 @@ func TestExitEndsTheSession(t *testing.T) {
 
 func TestCloseStopsAShellThatIsStillRunning(t *testing.T) {
 	s := start(t, 40, 10)
-	waitFor(t, s, "$")
+	waitReady(t, s)
 
 	done := make(chan error, 1)
 	go func() { done <- s.Close() }()

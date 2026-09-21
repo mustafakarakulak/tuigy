@@ -27,6 +27,21 @@ func openShell(t *testing.T, m Model) Model {
 }
 
 // waitForShell drives the model until the pane shows want.
+// shellReadyMarker is waited for instead of a prompt, because "$" is a user's
+// prompt and "#" is root's: CI runs these in a container as root. See the same
+// note in internal/term.
+const shellReadyMarker = "tuigyready"
+
+// waitReadyInPane makes the shell print the marker and waits for it to appear
+// in the pane. Split so that the command echoed on screen does not match it.
+func waitReadyInPane(t *testing.T, m Model) Model {
+	t.Helper()
+
+	m.shell.SendText("echo tuigy''ready")
+	m.shell.SendKey(uv.KeyPressEvent{Code: uv.KeyEnter})
+	return waitForShell(t, m, shellReadyMarker)
+}
+
 func waitForShell(t *testing.T, m Model, want string) Model {
 	t.Helper()
 
@@ -125,13 +140,13 @@ func TestClosingTheTerminalGivesItsRowsBack(t *testing.T) {
 func TestTheFileListStaysVisibleWithTheShellOpen(t *testing.T) {
 	m, _ := newTreeModel(t, 120, 40)
 	m = openShell(t, m)
-	m = waitForShell(t, m, "$")
+	m = waitReadyInPane(t, m)
 
 	body := plain(m.View())
 	if !strings.Contains(body, "internal/") {
 		t.Errorf("the tree is gone while the shell is open:\n%s", body)
 	}
-	if !strings.Contains(body, "$") {
+	if !strings.Contains(body, shellReadyMarker) {
 		t.Errorf("the shell is not on screen:\n%s", body)
 	}
 }
@@ -319,7 +334,7 @@ func TestTKeyStartsAShell(t *testing.T) {
 		t.Fatal("the shell did not take the pane and the keyboard")
 	}
 
-	m = waitForShell(t, m, "$")
+	m = waitReadyInPane(t, m)
 
 	// Shutdown is what main calls on the way out.
 	m.Shutdown()
