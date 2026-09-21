@@ -1,6 +1,10 @@
-# tuigy
+<p align="center">
+  <img src="docs/logo.png" alt="tuigy" width="420">
+</p>
 
-*English · [Türkçe](README.tr.md)*
+<p align="center">
+  <em>English · <a href="README.tr.md">Türkçe</a></em>
+</p>
 
 A fast, keyboard-first Git TUI for managing branches, commits, diffs, merges, and cherry-picks without leaving your terminal.
 

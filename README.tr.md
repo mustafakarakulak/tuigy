@@ -1,6 +1,10 @@
-# tuigy
+<p align="center">
+  <img src="docs/logo.png" alt="tuigy" width="420">
+</p>
 
-*[English](README.md) · Türkçe*
+<p align="center">
+  <em><a href="README.md">English</a> · Türkçe</em>
+</p>
 
 Terminalden çıkmadan branch, commit, diff, merge ve cherry-pick yönetmek için hızlı,
 klavye odaklı bir Git TUI'si.
