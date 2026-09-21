@@ -48,6 +48,8 @@ Everything on the original plan is in. Working today:
 - review marks: tick off files as you read an agent's changes, and the tick disappears
   again if the file is rewritten underneath you
 - filter any list with `/`, and copy a path, branch, commit hash or stash ref with `Y`
+- a command palette on `:` listing what the keyboard would do from where you are, with
+  the key beside each command
 - a settings screen for the theme and for every key binding, changed by pressing the
   key you want and written to the configuration file as you go
 - files view: a tree of everything git tracks, with the file itself in the pane beside
@@ -102,6 +104,7 @@ Run `tuigy` anywhere inside a Git repository.
 | `esc` | close a dialog, leave a pane, clear a filter |
 | `/` | filter the list you are on |
 | `Y` | copy what the cursor is on (path, branch, commit hash, stash) |
+| `:` | commands: everything you can do from here, and the key that does it |
 | `,` | settings: the theme, and which key does what |
 | `?` | help (scrollable) |
 | `r` | refresh |
@@ -183,7 +186,7 @@ Press `,` for the two things worth changing from inside:
 
 - **Theme.** The whole view is repainted as you move through the list, because a
   colour scheme is not something anyone can judge from its name. `enter` keeps it.
-- **Key bindings.** `tab` reaches the page. It lists all 63 actions — `/` narrows the
+- **Key bindings.** `tab` reaches the page. It lists all 64 actions — `/` narrows the
   list — and `enter` waits for the keystroke you want to give to the one under the
   cursor. `r` puts the default back. Each change takes effect at once and is written
   to your configuration file as you make it.
@@ -269,6 +272,19 @@ rewrites a file you already read has invalidated the reading, and a status poll 
 that on its own — the file is still just "modified".
 
 It is a note to yourself, not a gate. Nothing refuses to commit.
+
+## When you cannot remember the key
+
+`:` opens the command palette. Type any part of what you want — `sa` finds "stage
+everything" — and `enter` runs it.
+
+It lists what the keyboard would do **from where you are**, and nothing else: the
+current tab's own commands first, then the ones that work anywhere. You will not find
+"pop this stash" while looking at the changes, because pressing its key there would do
+nothing either. Moving between tabs is itself in the list.
+
+Every line carries the key that does the same thing. Using the palette is meant to
+stop being necessary.
 
 ## Reading the repository, not just the diff
 

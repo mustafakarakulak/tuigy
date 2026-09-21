@@ -30,6 +30,7 @@ Written for whoever picks this up next, including the author six months from now
 | [16](decisions/0016-the-terminal-is-a-band.md) | The terminal is a band, and reserves one key |
 | [17](decisions/0017-projects-are-remembered.md) | Every repository is remembered, and switching happens in place |
 | [18](decisions/0018-bindings-are-changed-where-they-are-read.md) | Key bindings are changed where they are read |
+| [19](decisions/0019-the-palette-offers-what-the-keys-would-do.md) | The palette offers what the keys would do, and nothing else |
 
 Start with [15](decisions/0015-a-workspace-around-the-git-tool.md) if you are deciding
 whether something belongs in tuigy at all, and then with

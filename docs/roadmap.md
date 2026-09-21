@@ -24,6 +24,8 @@ And then, against [0014](decisions/0014-what-tuigy-is-not.md)'s own reasoning an
 - a project switcher over every repository tuigy has been opened in
 - a settings screen that changes key bindings as well as the theme, writing each one
   to the configuration file as it is made
+- a command palette on `:`, listing what the keyboard would do from where you are,
+  with the key beside each command
 
 ## Deliberately not built
 
@@ -53,11 +55,6 @@ sized and independent of everything else.
 **Syntax highlighting in diffs.** Costs 2.1 MB of binary for chroma, and needs the
 added/removed colouring reworked onto backgrounds so syntax colours have somewhere to
 live. Worth doing after deciding how that should look.
-
-**A command palette.** Fuzzy search over all 63 actions, which would remove the
-question of which key does what entirely. It has gone from a convenience to close to a
-requirement: the single-letter keys are spent, and the last two features to need one
-took `+` and `-`.
 
 **Scrollback in the terminal band.** What scrolled past is currently the running
 program's to reach. See [0016](decisions/0016-the-terminal-is-a-band.md).

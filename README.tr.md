@@ -50,6 +50,8 @@ testleri çalıştıracağın bir kabuk, ve çalıştığın her repository bir 
 - gözden geçirme işaretleri: agent'ın değişikliklerini okurken dosyaları işaretle; dosya
   altından yeniden yazılırsa işaret kendiliğinden düşer
 - `/` ile her listede filtreleme, `Y` ile yol, branch adı, commit hash'i veya stash ref'i kopyalama
+- `:` ile komut paleti: bulunduğun yerden klavyenin ne yapacağını listeler, her komutun
+  yanında onu çalıştıran tuşla birlikte
 - tema ve bütün kısayollar için ayar ekranı: istediğin tuşa basarak değiştiriyorsun,
   her değişiklik yapıldığı anda yapılandırma dosyasına yazılıyor
 - files görünümü: git'in izlediği her şeyin ağacı, dosyanın kendisi yanındaki panelde;
@@ -102,6 +104,7 @@ go build -o tuigy ./cmd/tuigy
 | `esc` | diyaloğu kapat, panelden çık, filtreyi temizle |
 | `/` | bulunduğun listeyi filtrele |
 | `Y` | imlecin üzerindekini kopyala (yol, branch, commit hash'i, stash) |
+| `:` | komutlar: buradan yapabileceğin her şey, ve onu yapan tuş |
 | `,` | ayarlar: tema, ve hangi tuşun ne yaptığı |
 | `?` | yardım (kaydırılabilir) |
 | `r` | yenile |
@@ -183,7 +186,7 @@ tuigy hiçbir yapılandırma olmadan çalışır.
 
 - **Tema.** Listede gezerken bütün görünüm yeniden boyanır, çünkü bir renk şemasını
   kimse adına bakarak değerlendiremez. `enter` seçimi kalıcılaştırır.
-- **Kısayollar.** Sayfaya `tab` ile geçilir. 63 eylemin hepsini listeler — `/` listeyi
+- **Kısayollar.** Sayfaya `tab` ile geçilir. 64 eylemin hepsini listeler — `/` listeyi
   daraltır — ve `enter`, imlecin üzerindeki eyleme vermek istediğin tuşa basmanı
   bekler. `r` varsayılanı geri koyar. Her değişiklik anında geçerli olur ve yaptığın
   anda yapılandırma dosyana yazılır.
@@ -270,6 +273,19 @@ agent, o okumayı geçersiz kılmıştır — ve durum yoklaması bunu kendi ba�
 hâlâ sadece "değişmiş" görünür.
 
 Bu bir kapı değil, kendine bıraktığın not. Hiçbir şey commit'i reddetmez.
+
+## Tuşu hatırlamadığında
+
+`:` komut paletini açar. İstediğin şeyin herhangi bir parçasını yaz — `sa` "stage
+everything"i bulur — ve `enter` çalıştırır.
+
+Palet, **bulunduğun yerden** klavyenin ne yapacağını listeler, fazlasını değil: önce
+açık sekmenin kendi komutları, sonra her yerde çalışanlar. Changes sekmesindeyken
+"pop this stash" listede olmaz, çünkü orada o tuşa basmak da bir şey yapmazdı.
+Sekmeler arası geçiş de listenin içindedir.
+
+Her satır, aynı işi yapan tuşu yanında taşır. Paleti kullanmanın bir süre sonra
+gereksizleşmesi amaçlanmıştır.
 
 ## Sadece diff'i değil, repository'yi de okumak
 
