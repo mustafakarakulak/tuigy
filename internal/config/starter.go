@@ -32,7 +32,8 @@ const starter = `# tuigy configuration
 # that makes it wait, or tuigy carries on while the file is still open.
 # editor: "code --wait"
 
-# Rebind any action. "tuigy --actions" lists every name.
+# Rebind any action. "tuigy --actions" lists every name, and "," inside tuigy
+# changes them one at a time by pressing the key you want.
 # A single key or a list of them; "space" means the space bar.
 # keys:
 #   commit: [c, ctrl+k]

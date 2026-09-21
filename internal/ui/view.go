@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/mustafakarakulak/tuigy/internal/config"
 	"github.com/mustafakarakulak/tuigy/internal/editor"
 	"github.com/mustafakarakulak/tuigy/internal/git"
 )
@@ -488,45 +487,6 @@ func (m Model) stashBox() string {
 	)
 }
 
-// settingsBox is the answer to "where do I change how this looks". The theme is
-// picked here because it is the one setting worth seeing before choosing; the
-// rest is named so that the file stops being something you have to know about.
-func (m Model) settingsBox() string {
-	lines := []string{
-		styleTitle.Render("Settings"),
-		"",
-		styleDim.Render("theme"),
-	}
-
-	for i, name := range ThemeNames() {
-		if i == m.themeCursor {
-			lines = append(lines, styleSelected.Render(" ▸ "+name+" "))
-			continue
-		}
-		lines = append(lines, "   "+styleBase.Render(name))
-	}
-
-	path := "~/.config/tuigy/config.yml"
-	if p, err := config.Path(); err == nil {
-		path = config.ShortPath(p)
-	}
-
-	// The path can be long, so it is shortened from the front: the file name is
-	// the part that has to stay readable.
-	width := max(m.width-10, 20)
-
-	return strings.Join(append(lines,
-		"",
-		styleDim.Render("Everything is repainted as you move, so you can see each one."),
-		"",
-		styleSection.Render("EVERYTHING ELSE"),
-		styleDim.Render("Individual colours, key bindings, the editor and the commit"),
-		styleDim.Render("message agent live in this file:"),
-		"  "+styleBase.Render(truncateLeft(path, width)),
-		styleDim.Render("Run tuigy --init-config to write a documented one."),
-	), "\n")
-}
-
 func (m Model) confirmBox() string {
 	return lipgloss.JoinVertical(lipgloss.Left,
 		styleTitle.Render(m.confirm.title),
@@ -589,7 +549,8 @@ func (m Model) helpContent() string {
 
 	lines = append(lines, "",
 		styleDim.Render("press ")+styleKey.Render(",")+
-			styleDim.Render(" to change the theme, or tuigy --init-config for everything else"))
+			styleDim.Render(" to change the theme, or to put any of these actions on another key"),
+		styleDim.Render("tuigy --init-config writes a documented file for the editor and the rest"))
 
 	return lipgloss.JoinVertical(lipgloss.Left, lines...)
 }
@@ -665,10 +626,7 @@ func (m Model) hints() hintSet {
 		return hintSet{[]key.Binding{m.keys.Confirm}, []key.Binding{m.keys.Cancel}}
 
 	case modalSettings:
-		return hintSet{
-			[]key.Binding{m.keys.Down, m.keys.Up, m.keys.Confirm},
-			[]key.Binding{m.keys.Cancel},
-		}
+		return m.settingsHints()
 
 	case modalProjects:
 		return hintSet{

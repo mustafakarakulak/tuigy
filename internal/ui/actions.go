@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
@@ -19,7 +18,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/mustafakarakulak/tuigy/internal/ai"
-	"github.com/mustafakarakulak/tuigy/internal/config"
 	"github.com/mustafakarakulak/tuigy/internal/git"
 )
 
@@ -33,6 +31,13 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// says which for as long as this is true.
 	if m.termFocus && m.shell != nil {
 		return m.handleTerminalKey(msg)
+	}
+
+	// Capture mode is one keystroke long and swallows all of them, ctrl+c
+	// included: someone pressing keys to find out what they are should not have
+	// the program exit under them. It refuses ctrl+c rather than taking it.
+	if m.modal == modalSettings && m.capturing {
+		return m.handleSettingsKey(msg)
 	}
 
 	// ctrl+c always quits, even from inside a modal.
@@ -291,57 +296,6 @@ func (m Model) handleFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // ---------------------------------------------------------------- changes tab
-
-// ---------------------------------------------------------------- settings
-
-// openSettings shows the theme picker. Themes are applied as the cursor moves:
-// a colour scheme is not something anyone can judge from its name.
-func (m Model) openSettings() (tea.Model, tea.Cmd) {
-	m.err = nil
-	m.themeCursor = max(slices.Index(ThemeNames(), m.theme), 0)
-	m.modal = modalSettings
-	return m, nil
-}
-
-func (m Model) handleSettingsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	names := ThemeNames()
-
-	switch {
-	case key.Matches(msg, m.keys.Cancel):
-		// Leaving puts back what the user actually had.
-		m.modal = modalNone
-		return m, m.previewTheme(m.theme)
-
-	case key.Matches(msg, m.keys.Up):
-		m.themeCursor = max(m.themeCursor-1, 0)
-		return m, m.previewTheme(names[m.themeCursor])
-
-	case key.Matches(msg, m.keys.Down):
-		m.themeCursor = min(m.themeCursor+1, len(names)-1)
-		return m, m.previewTheme(names[m.themeCursor])
-
-	case key.Matches(msg, m.keys.Confirm):
-		chosen := names[m.themeCursor]
-		m.theme = chosen
-		m.modal = modalNone
-
-		return m, func() tea.Msg {
-			path, err := config.SetTheme(chosen)
-			return themeSavedMsg{path: path, err: err}
-		}
-	}
-
-	return m, nil
-}
-
-// previewTheme repaints everything in a theme without recording it as the
-// choice, so moving the cursor shows what a theme actually looks like.
-func (m Model) previewTheme(name string) tea.Cmd {
-	if err := ApplyTheme(name, nil); err != nil {
-		return func() tea.Msg { return errMsg{err} }
-	}
-	return nil
-}
 
 func (m Model) openHelp() (tea.Model, tea.Cmd) {
 	m.modal = modalHelp

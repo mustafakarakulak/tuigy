@@ -138,6 +138,18 @@ type Model struct {
 	theme       string
 	themeCursor int
 
+	// The settings dialog: which page it is on, where the key list is pointing,
+	// and whether the next keystroke is being taken as a binding rather than as
+	// whatever it usually does.
+	settingsPage settingsPage
+	keyCursor    int
+	keyOff       int
+	keyFilter    string
+	keyFiltering bool
+	capturing    bool
+	// keyNote is what the page has to say about the last thing that happened.
+	keyNote string
+
 	width, height int
 	ready         bool
 
@@ -760,6 +772,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// The editor almost certainly changed something on disk.
 		m.statusFP = ""
 		return m, m.reload()
+
+	case keysSavedMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			return m, nil
+		}
+		m.err = nil
+		return m, m.setFlash(msg.action + " saved to " + config.ShortPath(msg.path))
 
 	case themeSavedMsg:
 		if msg.err != nil {

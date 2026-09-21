@@ -69,18 +69,18 @@ func (m *Map) bindings() map[string]*key.Binding {
 		"pull":      &m.Pull,
 		"push":      &m.Push,
 
-		"terminal":       &m.Terminal,
-		"terminal-close": &m.TerminalClose,
-		"terminal-leave": &m.Detach,
-
-		"projects": &m.Projects,
-
 		"expand":           &m.Expand,
 		"collapse":         &m.Collapse,
 		"expand-subtree":   &m.ExpandSubtree,
 		"collapse-subtree": &m.CollapseSubtree,
 		"expand-all":       &m.ExpandEverything,
 		"collapse-all":     &m.CollapseTree,
+
+		"terminal":       &m.Terminal,
+		"terminal-close": &m.TerminalClose,
+		"terminal-leave": &m.Detach,
+
+		"projects": &m.Projects,
 
 		"settings": &m.Settings,
 		"refresh":  &m.Refresh,
@@ -99,6 +99,74 @@ func ActionNames() []string {
 		names = append(names, name)
 	}
 	slices.Sort(names)
+	return names
+}
+
+// Get returns the binding an action currently carries, so that a settings
+// screen can show what a key does without knowing how the map is built.
+func (m *Map) Get(name string) (key.Binding, bool) {
+	binding, ok := m.bindings()[name]
+	if !ok {
+		return key.Binding{}, false
+	}
+	return *binding, true
+}
+
+// Set rebinds one action, which is Apply for the case the settings screen has:
+// a single action and the keystroke the user just pressed.
+func (m *Map) Set(name string, strokes []string) error {
+	return m.Apply(map[string][]string{name: strokes})
+}
+
+// Reset puts one action back to the keys it ships with.
+func (m *Map) Reset(name string) error {
+	defaults := Default()
+	original, ok := defaults.Get(name)
+	if !ok {
+		return fmt.Errorf("unknown action %q", name)
+	}
+
+	binding, ok := m.bindings()[name]
+	if !ok {
+		return fmt.Errorf("unknown action %q", name)
+	}
+	*binding = original
+	return nil
+}
+
+// IsDefault reports whether an action still has the keys it ships with.
+func (m *Map) IsDefault(name string) bool {
+	defaults := Default()
+	original, ok := defaults.Get(name)
+	if !ok {
+		return true
+	}
+	current, ok := m.Get(name)
+	if !ok {
+		return true
+	}
+	return slices.Equal(current.Keys(), original.Keys())
+}
+
+// Conflicts lists the other actions a keystroke is already bound to.
+//
+// Sharing a key is not an error in itself — enter checks out a branch, pops a
+// stash and confirms a dialog, because no two of those are ever on screen at
+// once — so this reports rather than refuses.
+func (m *Map) Conflicts(stroke, exclude string) []string {
+	var names []string
+	for _, name := range ActionNames() {
+		if name == exclude {
+			continue
+		}
+		binding, ok := m.Get(name)
+		if !ok {
+			continue
+		}
+		if slices.Contains(binding.Keys(), stroke) {
+			names = append(names, name)
+		}
+	}
 	return names
 }
 
