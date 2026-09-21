@@ -59,6 +59,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleStashPushKey(msg)
 	case modalSettings:
 		return m.handleSettingsKey(msg)
+	case modalProjects:
+		return m.handleProjectsKey(msg)
 	case modalOperation:
 		return m.handleOperationKey(msg)
 	case modalConfirm:
@@ -141,6 +143,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, m.syncDiff()
 		}
 		return m, nil
+
+	case key.Matches(msg, m.keys.Projects):
+		return m.openProjects()
 
 	case key.Matches(msg, m.keys.StashPush):
 		return m.openStashPush()

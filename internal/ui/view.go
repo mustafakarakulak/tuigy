@@ -166,6 +166,8 @@ func (m Model) bodyView() string {
 		return m.center(m.stashBox(), bodyH)
 	case modalSettings:
 		return m.center(m.settingsBox(), bodyH)
+	case modalProjects:
+		return m.center(m.projectsBox(), bodyH)
 	case modalOperation:
 		return m.center(m.operationBox(), bodyH)
 	case modalConfirm:
@@ -558,7 +560,7 @@ func (m Model) helpContent() string {
 		{"History", []key.Binding{m.keys.Pick, m.keys.CherryPick}},
 		{"Stashes", []key.Binding{m.keys.StashPush, m.keys.StashPop, m.keys.StashApply, m.dropStashBinding()}},
 		{"Remote", []key.Binding{m.keys.Fetch, m.keys.FetchAll, m.keys.Pull, m.keys.Push}},
-		{"Terminal", []key.Binding{m.keys.Terminal, m.keys.Detach, m.keys.TerminalClose}},
+		{"Terminal and projects", []key.Binding{m.keys.Terminal, m.keys.Detach, m.keys.TerminalClose, m.keys.Projects}},
 		{"Conflicts", []key.Binding{m.keys.Merge, m.keys.Continue, m.keys.Abort}},
 		{"Commit and general", []key.Binding{m.keys.Commit, m.keys.Amend, m.generateBinding(), m.keys.Submit, m.keys.Settings, m.keys.Refresh, m.keys.Help, m.keys.Quit}},
 	}
@@ -668,6 +670,12 @@ func (m Model) hints() hintSet {
 			[]key.Binding{m.keys.Cancel},
 		}
 
+	case modalProjects:
+		return hintSet{
+			[]key.Binding{m.switchBinding(), m.keys.Down, m.keys.Up, m.forgetBinding()},
+			[]key.Binding{m.keys.Cancel},
+		}
+
 	case modalOperation:
 		return hintSet{
 			[]key.Binding{m.keys.Continue, m.keys.Abort},
@@ -691,13 +699,14 @@ func (m Model) hints() hintSet {
 		set.actions = append([]key.Binding{m.resolveBinding()}, set.actions...)
 	}
 
-	// The shell is reachable from every view, so it is offered once here rather
-	// than repeated in each tab's list. It goes last, which is also the first
-	// thing dropped on a narrow terminal.
+	// The shell and the project switcher are reachable from every view, so they
+	// are offered once here rather than repeated in each tab's list. They go
+	// last, which is also the first thing dropped on a narrow terminal.
 	set.actions = append(set.actions, m.terminalBinding())
 	if m.shell != nil {
 		set.actions = append(set.actions, m.keys.TerminalClose)
 	}
+	set.actions = append(set.actions, m.keys.Projects)
 	return set
 }
 
@@ -737,6 +746,23 @@ func (m Model) treeEnterBinding() key.Binding {
 	return key.NewBinding(
 		key.WithKeys(m.keys.Confirm.Keys()...),
 		key.WithHelp(m.keys.Confirm.Help().Key, "open a folder, or read a file"),
+	)
+}
+
+// switchBinding names what enter does in the project switcher.
+func (m Model) switchBinding() key.Binding {
+	return key.NewBinding(
+		key.WithKeys(m.keys.Confirm.Keys()...),
+		key.WithHelp(m.keys.Confirm.Help().Key, "switch to it"),
+	)
+}
+
+// forgetBinding relabels the delete key inside the project switcher, where it
+// drops an entry from a list rather than deleting anything.
+func (m Model) forgetBinding() key.Binding {
+	return key.NewBinding(
+		key.WithKeys(m.keys.DeleteRef.Keys()...),
+		key.WithHelp(m.keys.DeleteRef.Help().Key, "forget this project"),
 	)
 }
 

@@ -80,6 +80,8 @@ type Map struct {
 	TerminalClose key.Binding
 	Detach        key.Binding
 
+	Projects key.Binding
+
 	Settings key.Binding
 	Refresh  key.Binding
 	Help     key.Binding
@@ -161,6 +163,8 @@ func Default() Map {
 		// the shell never receives. It is chosen because almost nothing binds
 		// it: ctrl+c, ctrl+d, ctrl+z and tab all have to reach the child.
 		Detach: key.NewBinding(key.WithKeys("ctrl+o"), key.WithHelp("ctrl+o", "leave the terminal")),
+
+		Projects: key.NewBinding(key.WithKeys("ctrl+p"), key.WithHelp("ctrl+p", "switch project")),
 
 		Settings: key.NewBinding(key.WithKeys(","), key.WithHelp(",", "settings")),
 		Refresh:  key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),

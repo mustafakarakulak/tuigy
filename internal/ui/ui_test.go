@@ -150,6 +150,8 @@ func keyMsg(s string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyCtrlC}
 	case "ctrl+o":
 		return tea.KeyMsg{Type: tea.KeyCtrlO}
+	case "ctrl+p":
+		return tea.KeyMsg{Type: tea.KeyCtrlP}
 	default:
 		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
 	}

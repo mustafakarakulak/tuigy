@@ -73,6 +73,8 @@ func (m *Map) bindings() map[string]*key.Binding {
 		"terminal-close": &m.TerminalClose,
 		"terminal-leave": &m.Detach,
 
+		"projects": &m.Projects,
+
 		"expand":           &m.Expand,
 		"collapse":         &m.Collapse,
 		"expand-subtree":   &m.ExpandSubtree,

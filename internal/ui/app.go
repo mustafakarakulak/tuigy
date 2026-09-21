@@ -104,6 +104,7 @@ const (
 	modalOperation
 	modalConfirm
 	modalSettings
+	modalProjects
 	modalHelp
 )
 
@@ -168,6 +169,11 @@ type Model struct {
 	shell        *term.Session
 	termFocus    bool
 	termW, termH int
+
+	// Project switcher.
+	projects      []config.Project
+	projectCursor int
+	projectFilter string
 
 	// Changes tab.
 	rows    []row
@@ -331,7 +337,10 @@ func newSpinner() spinner.Model {
 func (m Model) Init() tea.Cmd {
 	// Branches are loaded up front, not on first visit: the cherry-pick dialog
 	// needs the list of local branches whichever tab it is opened from.
-	return tea.Batch(m.loadStatus(), m.loadBranches(), scheduleTick())
+	//
+	// Opening the repository is also what puts it in the project switcher, so
+	// the list is never something anyone has to fill in.
+	return tea.Batch(m.loadStatus(), m.loadBranches(), m.rememberProject(), scheduleTick())
 }
 
 // ---------------------------------------------------------------- messages
@@ -663,6 +672,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Something was almost certainly run in there.
 		m.statusFP = ""
 		return m, tea.Batch(m.reload(), m.loadFiles())
+
+	case projectsMsg:
+		m.projects = msg.projects
+		m.projectCursor = clamp(m.projectCursor, 0, max(len(m.matchingProjects())-1, 0))
+		return m, nil
+
+	case repoOpenedMsg:
+		if msg.err != nil {
+			m.err = fmt.Errorf("%s: %w", config.ShortPath(msg.project.Path), msg.err)
+			return m, nil
+		}
+		cmd := m.adoptRepo(msg.repo)
+		return m, tea.Batch(cmd, m.setFlash("switched to "+msg.repo.Name()))
 
 	case stashesMsg:
 		return m, m.applyStashes(msg.stashes)
