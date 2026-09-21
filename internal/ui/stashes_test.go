@@ -47,7 +47,7 @@ func newStashModel(t *testing.T, width, height int) (Model, string) {
 // openStashes switches to the stash tab and settles the loads it starts.
 func (m Model) openStashes(t *testing.T) Model {
 	t.Helper()
-	next, cmd := m.press(t, "4")
+	next, cmd := m.press(t, "5")
 	m = next
 	for range 3 {
 		m, cmd = m.step(t, cmd)

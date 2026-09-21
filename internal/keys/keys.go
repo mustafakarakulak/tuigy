@@ -21,10 +21,22 @@ type Map struct {
 	NextPane key.Binding
 	PrevPane key.Binding
 
+	TabFiles    key.Binding
 	TabChanges  key.Binding
 	TabBranches key.Binding
 	TabHistory  key.Binding
 	TabStashes  key.Binding
+
+	// Files tab. Expand and Collapse open and close a directory; the same keys
+	// scroll a diff sideways, which the two views never need at once.
+	//
+	// The other two pairs fold more at once: a subtree, or the whole tree.
+	Expand           key.Binding
+	Collapse         key.Binding
+	ExpandSubtree    key.Binding
+	CollapseSubtree  key.Binding
+	ExpandEverything key.Binding
+	CollapseTree     key.Binding
 
 	Toggle     key.Binding
 	Stage      key.Binding
@@ -86,10 +98,20 @@ func Default() Map {
 		NextPane: key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next pane")),
 		PrevPane: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "previous pane")),
 
-		TabChanges:  key.NewBinding(key.WithKeys("1"), key.WithHelp("1", "changes")),
-		TabBranches: key.NewBinding(key.WithKeys("2"), key.WithHelp("2", "branches")),
-		TabHistory:  key.NewBinding(key.WithKeys("3"), key.WithHelp("3", "history")),
-		TabStashes:  key.NewBinding(key.WithKeys("4"), key.WithHelp("4", "stashes")),
+		TabFiles:    key.NewBinding(key.WithKeys("1"), key.WithHelp("1", "files")),
+		TabChanges:  key.NewBinding(key.WithKeys("2"), key.WithHelp("2", "changes")),
+		TabBranches: key.NewBinding(key.WithKeys("3"), key.WithHelp("3", "branches")),
+		TabHistory:  key.NewBinding(key.WithKeys("4"), key.WithHelp("4", "history")),
+		TabStashes:  key.NewBinding(key.WithKeys("5"), key.WithHelp("5", "stashes")),
+
+		Expand:   key.NewBinding(key.WithKeys("right", "l"), key.WithHelp("→/l", "open folder")),
+		Collapse: key.NewBinding(key.WithKeys("left", "h"), key.WithHelp("←/h", "close folder")),
+		// Shifted versions of the keys that open one folder, for opening or
+		// closing the lot; + and - fold what is under the cursor.
+		ExpandSubtree:    key.NewBinding(key.WithKeys("+"), key.WithHelp("+", "open this folder and everything in it")),
+		CollapseSubtree:  key.NewBinding(key.WithKeys("-"), key.WithHelp("-", "close this folder and everything in it")),
+		ExpandEverything: key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "open the whole tree")),
+		CollapseTree:     key.NewBinding(key.WithKeys("H"), key.WithHelp("H", "close the whole tree")),
 
 		Toggle:     key.NewBinding(key.WithKeys(" "), key.WithHelp("space", "stage/unstage")),
 		Stage:      key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "stage")),

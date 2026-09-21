@@ -27,7 +27,7 @@ func (m Model) typeFilter(t *testing.T, query string) Model {
 
 func TestFilterNarrowsTheBranchList(t *testing.T) {
 	m, _ := newBranchModel(t, 120, 32)
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 
 	before := len(m.branchRows)
 	m = m.typeFilter(t, "develop")
@@ -70,7 +70,7 @@ func TestFilterNarrowsTheBranchList(t *testing.T) {
 // Abandoning a half-typed filter leaves the list as it was.
 func TestFilterCanBeAbandoned(t *testing.T) {
 	m, _ := newBranchModel(t, 120, 32)
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 
 	before := len(m.branchRows)
 	m = m.typeFilter(t, "dev")
@@ -86,7 +86,7 @@ func TestFilterCanBeAbandoned(t *testing.T) {
 
 func TestFilterBackspace(t *testing.T) {
 	m, _ := newBranchModel(t, 120, 32)
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 
 	m = m.typeFilter(t, "devx")
 	if n := countHeaders(m.branchRows); n != 0 {
@@ -127,7 +127,7 @@ func TestFilterNarrowsTheChangesList(t *testing.T) {
 // to whichever page happens to be loaded.
 func TestFilterSearchesTheWholeHistory(t *testing.T) {
 	m, _ := newHistoryModel(t, 120, 32)
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature").openHistoryOfSelected(t)
 
 	if len(m.commits) != 4 {
@@ -180,13 +180,13 @@ func TestFilterIsClearedWhenTheTabChanges(t *testing.T) {
 	}
 
 	// Leave for another tab and come back.
-	next, cmd := m.press(t, "2")
+	next, cmd := m.press(t, "3")
 	m = next.applyCmd(t, cmd)
 	if m.filter != "" {
 		t.Errorf("filter = %q, want it cleared by the tab change", m.filter)
 	}
 
-	next, cmd = m.press(t, "1")
+	next, cmd = m.press(t, "2")
 	m = next.applyCmd(t, cmd)
 	if got := countFiles(m.rows); got != all {
 		t.Errorf("%d files shown, want the original %d back", got, all)
@@ -216,7 +216,7 @@ func TestCopySelectionPerTab(t *testing.T) {
 	}
 
 	m, _ := newHistoryModel(t, 120, 32)
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature")
 	if label, value := m.selectionForClipboard(); label != "branch" || value != "feature" {
 		t.Errorf("branches tab offers (%q, %q), want the branch name", label, value)

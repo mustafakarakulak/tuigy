@@ -175,6 +175,8 @@ func (m Model) bodyView() string {
 	}
 
 	switch m.tab {
+	case tabFiles:
+		return m.filesBody()
 	case tabBranches:
 		return m.branchesBody()
 	case tabHistory:
@@ -184,6 +186,21 @@ func (m Model) bodyView() string {
 	default:
 		return m.changesBody()
 	}
+}
+
+func (m Model) filesBody() string {
+	list := paneStyle(m.focus == paneList).
+		Width(m.listW).Height(m.listH).
+		Render(fitPane(
+			renderFileTree(m.fileRows, m.fileCursor, m.fileOff, m.listW, m.listH,
+				changedPaths(m.status), m.expanded),
+			m.listW, m.listH))
+
+	detail := paneStyle(m.focus == paneDetail).
+		Width(m.diffW).Height(m.diffH).
+		Render(fitPane(m.preview.View(), m.diffW, m.diffH))
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, list, detail)
 }
 
 func (m Model) stashesBody() string {
@@ -508,7 +525,11 @@ func (m Model) helpContent() string {
 
 	left := []group{
 		{"Navigate", []key.Binding{m.keys.Up, m.keys.Down, m.keys.Top, m.keys.Bottom, m.keys.NextPane}},
-		{"Tabs", []key.Binding{m.keys.TabChanges, m.keys.TabBranches, m.keys.TabHistory, m.keys.TabStashes}},
+		{"Tabs", []key.Binding{m.keys.TabFiles, m.keys.TabChanges, m.keys.TabBranches, m.keys.TabHistory, m.keys.TabStashes}},
+		{"Files", []key.Binding{m.keys.Expand, m.keys.Collapse,
+			m.keys.ExpandSubtree, m.keys.CollapseSubtree,
+			m.keys.ExpandEverything, m.keys.CollapseTree,
+			m.treeEnterBinding(), m.editorBinding()}},
 		{"Changes", []key.Binding{m.keys.Toggle, m.keys.Stage, m.keys.Unstage, m.keys.StageAll, m.keys.UnstageAll, m.keys.Review, m.keys.Discard, m.editorBinding()}},
 		{"Any list", []key.Binding{m.keys.Filter, m.keys.Copy}},
 	}
@@ -645,6 +666,33 @@ func (m Model) hints() hintSet {
 	return set
 }
 
+// foldSubtreeBinding and foldTreeBinding each put a pair of opposite keys in
+// one hint, the way "↑/k" already does: the footer has room to say what the
+// pair does, but not to say it twice.
+func (m Model) foldSubtreeBinding() key.Binding {
+	return pairBinding(m.keys.ExpandSubtree, m.keys.CollapseSubtree, "open/close all inside")
+}
+
+func (m Model) foldTreeBinding() key.Binding {
+	return pairBinding(m.keys.ExpandEverything, m.keys.CollapseTree, "open/close the whole tree")
+}
+
+func pairBinding(open, close key.Binding, desc string) key.Binding {
+	return key.NewBinding(
+		key.WithKeys(append(open.Keys(), close.Keys()...)...),
+		key.WithHelp(open.Help().Key+"/"+close.Help().Key, desc),
+	)
+}
+
+// treeEnterBinding says what enter does in the tree, where "confirm" would
+// describe nothing anyone is doing.
+func (m Model) treeEnterBinding() key.Binding {
+	return key.NewBinding(
+		key.WithKeys(m.keys.Confirm.Keys()...),
+		key.WithHelp(m.keys.Confirm.Help().Key, "open a folder, or read a file"),
+	)
+}
+
 // resolveBinding labels the merge key for what it currently does: while an
 // operation is unfinished, "m" opens that rather than starting a new merge.
 func (m Model) resolveBinding() key.Binding {
@@ -709,6 +757,20 @@ func (m Model) viewHints() hintSet {
 	}
 
 	switch m.tab {
+	case tabFiles:
+		if m.focus == paneDetail {
+			return scrolling
+		}
+		var actions []key.Binding
+		if n, ok := m.selectedFile(); ok && n.dir {
+			actions = append(actions, m.keys.Expand, m.keys.Collapse)
+		} else {
+			actions = append(actions, m.treeEnterBinding(), m.editorBinding())
+		}
+		actions = append(actions, m.foldSubtreeBinding(), m.foldTreeBinding(),
+			m.keys.Filter, m.keys.Copy, m.keys.NextPane)
+		return hintSet{actions, wayOut}
+
 	case tabBranches:
 		var actions []key.Binding
 		if b, ok := m.selectedBranch(); ok && !b.Current {

@@ -249,7 +249,7 @@ func TestBranchNavigation(t *testing.T) {
 
 func TestHistoryNavigationKeys(t *testing.T) {
 	m, _ := newHistoryModel(t, 120, 32)
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature").openHistoryOfSelected(t)
 
 	m, _ = m.press(t, "G")
@@ -351,7 +351,7 @@ func TestDialogsCancel(t *testing.T) {
 
 func TestCherryPickDialogNavigation(t *testing.T) {
 	m, _ := newHistoryModel(t, 120, 32)
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature").openHistoryOfSelected(t)
 
 	m, _ = m.press(t, "y")
@@ -394,7 +394,7 @@ func TestCherryPickDialogNavigation(t *testing.T) {
 
 func TestCherryPickWithoutASelection(t *testing.T) {
 	m, _ := newHistoryModel(t, 120, 32)
-	m, _ = m.press(t, "3")
+	m, _ = m.press(t, "4")
 
 	// An empty history has nothing to pick.
 	m.commits = nil

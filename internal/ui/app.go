@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,16 +53,19 @@ const (
 type tab int
 
 const (
-	tabChanges tab = iota
+	tabFiles tab = iota
+	tabChanges
 	tabBranches
 	tabHistory
 	tabStashes
 )
 
-var allTabs = []tab{tabChanges, tabBranches, tabHistory, tabStashes}
+var allTabs = []tab{tabFiles, tabChanges, tabBranches, tabHistory, tabStashes}
 
 func (t tab) title() string {
 	switch t {
+	case tabFiles:
+		return "Files"
 	case tabChanges:
 		return "Changes"
 	case tabBranches:
@@ -133,6 +137,18 @@ type Model struct {
 	opState  git.OpState
 
 	tab tab
+
+	// Files tab. allFiles is every path git knows about, and expanded holds the
+	// directories that have been opened.
+	allFiles    []string
+	fileRows    []fileRow
+	fileCursor  int
+	fileOff     int
+	expanded    map[string]bool
+	filesLoaded bool
+
+	preview    viewport.Model
+	previewKey string
 
 	// Changes tab.
 	rows    []row
@@ -258,15 +274,21 @@ func New(repo *git.Repo, opts ...Option) Model {
 	ti.Prompt = ""
 
 	m := Model{
-		repo:      repo,
-		theme:     "default",
-		keys:      keys.Default(),
-		ai:        ai.Detect(""),
+		repo:  repo,
+		theme: "default",
+		keys:  keys.Default(),
+		ai:    ai.Detect(""),
+		// The files tab sits first because that is where a repository is
+		// looked at, but tuigy opens on the changes: watching what an agent
+		// just wrote is what it is for.
+		tab:       tabChanges,
 		commit:    ta,
 		nameInput: ti,
+		expanded:  map[string]bool{},
 		diff:      viewport.New(0, 0),
 		detail:    viewport.New(0, 0),
 		stashView: viewport.New(0, 0),
+		preview:   viewport.New(0, 0),
 		help:      viewport.New(0, 0),
 		spinner:   newSpinner(),
 	}
@@ -329,6 +351,9 @@ type (
 		message string
 		err     error
 	}
+
+	filesMsg   struct{ paths []string }
+	previewMsg struct{ key, text string }
 
 	stashesMsg   struct{ stashes []git.Stash }
 	stashDiffMsg struct{ key, text string }
@@ -411,6 +436,56 @@ func (m Model) loadHistory(ref string, skip int) tea.Cmd {
 		}
 		return commitsMsg{ref: ref, filter: filter, skip: skip, commits: commits}
 	}
+}
+
+// loadFiles reads the repository's file list for the tree.
+func (m Model) loadFiles() tea.Cmd {
+	repo := m.repo
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		paths, err := repo.Files(ctx)
+		if err != nil {
+			return errMsg{err}
+		}
+		return filesMsg{paths: paths}
+	}
+}
+
+// loadPreview reads a file from the working tree for the preview pane.
+//
+// It reads from disk rather than from git because the tree describes what is
+// there now, uncommitted edits included.
+func (m Model) loadPreview(path string) tea.Cmd {
+	full := filepath.Join(m.repo.Root, path)
+	return func() tea.Msg {
+		info, err := os.Stat(full)
+		if err != nil {
+			return previewMsg{key: path, text: styleDim.Render(err.Error())}
+		}
+
+		data, err := readCapped(full, maxPreviewBytes)
+		if err != nil {
+			return previewMsg{key: path, text: styleDim.Render(err.Error())}
+		}
+		if note := previewNote(data, info.Size()); note != "" {
+			return previewMsg{key: path, text: styleDim.Render(note)}
+		}
+		return previewMsg{key: path, text: string(data)}
+	}
+}
+
+// readCapped reads at most limit bytes, so that a huge file is recognised
+// without being held in memory first.
+func readCapped(path string, limit int64) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return io.ReadAll(io.LimitReader(f, limit))
 }
 
 func (m Model) loadStashes() tea.Cmd {
@@ -521,6 +596,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case branchesMsg:
 		m.applyBranches(msg.branches)
+		return m, nil
+
+	case filesMsg:
+		return m, m.applyFiles(msg.paths)
+
+	case previewMsg:
+		// Stale requests that lost the race are dropped.
+		if msg.key == m.previewKey {
+			m.preview.SetContent(renderPreview(msg.text, m.diffW))
+			m.preview.GotoTop()
+		}
 		return m, nil
 
 	case stashesMsg:
@@ -644,6 +730,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // reload refreshes everything the active view depends on.
 func (m Model) reload() tea.Cmd {
 	switch m.tab {
+	case tabFiles:
+		return tea.Batch(m.loadStatus(), m.loadFiles())
 	case tabBranches:
 		return tea.Batch(m.loadStatus(), m.loadBranches())
 	case tabHistory:
@@ -740,6 +828,10 @@ func (m Model) applyStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	// A changed status usually means refs moved too, so whichever ref-derived
 	// view the user is looking at is now stale.
 	switch m.tab {
+	case tabFiles:
+		// A file was added or removed often enough that the tree is reread
+		// rather than left describing the repository as it was.
+		cmds = append(cmds, m.loadFiles())
 	case tabBranches:
 		cmds = append(cmds, m.loadBranches())
 	case tabHistory:
@@ -748,6 +840,137 @@ func (m Model) applyStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, m.loadStashes())
 	}
 	return m, tea.Batch(cmds...)
+}
+
+// applyFiles folds a freshly read file list into the tree.
+func (m *Model) applyFiles(paths []string) tea.Cmd {
+	m.allFiles = paths
+	if m.expanded == nil {
+		m.expanded = map[string]bool{}
+	}
+
+	// The first load opens the directories holding changed files. A tree that
+	// starts wholly closed hides the one thing tuigy is looking at, and one
+	// that starts wholly open is a wall of paths.
+	if !m.filesLoaded {
+		m.filesLoaded = true
+		for path := range changedPaths(m.status) {
+			expandTo(m.expanded, path)
+		}
+	}
+
+	m.rebuildFileRows()
+	return m.syncPreview()
+}
+
+// rebuildFileRows redraws the row list for the current filter and expansion,
+// then puts the cursor back where it was.
+func (m *Model) rebuildFileRows() {
+	previous := m.selectedTreePath()
+	m.fileRows = buildFileRows(m.allFiles, m.filter, m.expanded)
+	m.selectTreeRow(previous)
+}
+
+// selectTreeRow points the cursor at a path, or at the nearest directory above
+// it that is still on screen.
+//
+// Folding a tree hides rows, and the row the cursor was on is often one of
+// them. Following it up to its parent is where the eye goes anyway: that is the
+// line the contents just disappeared into.
+func (m *Model) selectTreeRow(path string) {
+	for ; path != ""; path = parentDir(path) {
+		for i, r := range m.fileRows {
+			if r.node.path == path {
+				m.fileCursor = i
+				m.ensureFileVisible()
+				return
+			}
+		}
+	}
+
+	m.fileCursor = clamp(m.fileCursor, 0, max(len(m.fileRows)-1, 0))
+	m.ensureFileVisible()
+}
+
+// foldTarget is the directory the subtree commands act on: the one under the
+// cursor, or the one holding the file under it.
+//
+// A file has nothing to fold, but the folder it sits in is what "close this and
+// everything in it" means with the cursor there.
+func (m Model) foldTarget() string {
+	n, ok := m.selectedFile()
+	if !ok {
+		return ""
+	}
+	if n.dir {
+		return n.path
+	}
+	return parentDir(n.path)
+}
+
+func (m Model) selectedFile() (*treeNode, bool) {
+	if m.fileCursor < 0 || m.fileCursor >= len(m.fileRows) {
+		return nil, false
+	}
+	return m.fileRows[m.fileCursor].node, true
+}
+
+func (m Model) selectedTreePath() string {
+	if n, ok := m.selectedFile(); ok {
+		return n.path
+	}
+	return ""
+}
+
+func (m *Model) moveFileCursor(delta int) tea.Cmd {
+	if len(m.fileRows) == 0 {
+		return nil
+	}
+	m.fileCursor = clamp(m.fileCursor+delta, 0, len(m.fileRows)-1)
+	m.ensureFileVisible()
+	return m.syncPreview()
+}
+
+// toggleExpand opens or closes the directory under the cursor.
+func (m *Model) toggleExpand(open bool) tea.Cmd {
+	n, ok := m.selectedFile()
+	if !ok || !n.dir {
+		return nil
+	}
+	if m.expanded[n.path] == open {
+		return nil
+	}
+
+	if m.expanded == nil {
+		m.expanded = map[string]bool{}
+	}
+	m.expanded[n.path] = open
+	if !open {
+		delete(m.expanded, n.path)
+	}
+
+	m.rebuildFileRows()
+	return nil
+}
+
+// syncPreview reloads the preview when the selected entry has changed.
+func (m *Model) syncPreview() tea.Cmd {
+	n, ok := m.selectedFile()
+	if !ok {
+		m.previewKey = ""
+		m.preview.SetContent(styleDim.Render("nothing selected"))
+		return nil
+	}
+	if n.dir {
+		m.previewKey = ""
+		m.preview.SetContent(renderDirSummary(n, m.diffW))
+		return nil
+	}
+	if n.path == m.previewKey {
+		return nil
+	}
+	m.previewKey = n.path
+	return m.loadPreview(n.path)
 }
 
 // stashKey identifies a stash by what it holds rather than by its ref, because
@@ -1015,6 +1238,7 @@ func (m *Model) layout() {
 	m.diff.Width, m.diff.Height = m.diffW, m.diffH
 	m.detail.Width, m.detail.Height = m.diffW, m.diffH
 	m.stashView.Width, m.stashView.Height = m.diffW, m.diffH
+	m.preview.Width, m.preview.Height = m.diffW, m.diffH
 
 	m.commit.SetWidth(max(m.width/2, 20))
 	m.commit.SetHeight(max(min(bodyH-10, 8), 3))
@@ -1026,6 +1250,7 @@ func (m *Model) layout() {
 
 	m.ensureVisible()
 	m.ensureBranchVisible()
+	m.ensureFileVisible()
 }
 
 func (m *Model) ensureVisible() {
@@ -1034,6 +1259,10 @@ func (m *Model) ensureVisible() {
 
 func (m *Model) ensureBranchVisible() {
 	m.branchOff = scrollTo(m.branchCur, m.branchOff, m.listH)
+}
+
+func (m *Model) ensureFileVisible() {
+	m.fileOff = scrollTo(m.fileCursor, m.fileOff, m.listH)
 }
 
 // scrollTo returns the offset that keeps cursor inside a window of height rows.
@@ -1071,6 +1300,11 @@ func matchesFilter(filter, text string) bool {
 // commit worth finding is usually older than the page that happens to be loaded.
 func (m *Model) applyFilter() tea.Cmd {
 	switch m.tab {
+	case tabFiles:
+		m.fileCursor, m.fileOff = 0, 0
+		m.fileRows = buildFileRows(m.allFiles, m.filter, m.expanded)
+		return m.syncPreview()
+
 	case tabBranches:
 		m.applyBranches(m.allBranches)
 		return nil
@@ -1101,6 +1335,8 @@ func (m *Model) clearFilter() {
 // filteredCount is how many rows the filter is hiding, for the header.
 func (m Model) filteredCount() (shown, total int) {
 	switch m.tab {
+	case tabFiles:
+		return countFileRows(m.fileRows), len(m.allFiles)
 	case tabBranches:
 		return len(m.branchRows) - countHeaders(m.branchRows), len(m.allBranches)
 	case tabStashes:

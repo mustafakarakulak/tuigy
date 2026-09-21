@@ -132,7 +132,7 @@ func opResult(t *testing.T, cmd tea.Cmd) opDoneMsg {
 func (m Model) openHistory(t *testing.T, keys ...string) Model {
 	t.Helper()
 
-	next, cmd := m.press(t, "3")
+	next, cmd := m.press(t, "4")
 	m = next
 	for range 3 { // commits, then the detail they trigger
 		m, cmd = m.step(t, cmd)
@@ -185,7 +185,7 @@ func TestHistoryLoadsCurrentBranch(t *testing.T) {
 func TestHistoryOfAnotherBranchFromTheBranchList(t *testing.T) {
 	m, _ := newHistoryModel(t, 120, 32)
 
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature")
 
 	next, cmd := m.press(t, "l")
@@ -212,7 +212,7 @@ func TestHistoryOfAnotherBranchFromTheBranchList(t *testing.T) {
 func TestHistoryCursorMovesAndDetailFollows(t *testing.T) {
 	m, _ := newHistoryModel(t, 120, 32)
 
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature")
 	next, cmd := m.press(t, "l")
 	m = next
@@ -243,7 +243,7 @@ func TestHistoryCursorMovesAndDetailFollows(t *testing.T) {
 func TestSelectingCommitsAdvancesTheCursor(t *testing.T) {
 	m, _ := newHistoryModel(t, 120, 32)
 
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature")
 	m = m.openHistoryOfSelected(t)
 
@@ -282,7 +282,7 @@ func TestSelectingCommitsAdvancesTheCursor(t *testing.T) {
 func TestCherryPickDefaultsToTheCommitUnderTheCursor(t *testing.T) {
 	m, _ := newHistoryModel(t, 120, 32)
 
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature")
 	m = m.openHistoryOfSelected(t)
 
@@ -298,7 +298,7 @@ func TestCherryPickDefaultsToTheCommitUnderTheCursor(t *testing.T) {
 func TestCherryPickAppliesInChronologicalOrder(t *testing.T) {
 	m, dir := newHistoryModel(t, 120, 32)
 
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature")
 	m = m.openHistoryOfSelected(t)
 
@@ -344,7 +344,7 @@ func TestCherryPickOntoAnotherBranchChecksItOut(t *testing.T) {
 	run(t, dir, "branch", "target")
 	m = m.reloadAll(t)
 
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature")
 	m = m.openHistoryOfSelected(t)
 
@@ -375,7 +375,7 @@ func TestCherryPickConflictUsesTheOperationDialog(t *testing.T) {
 	run(t, dir, "commit", "-m", "main touches one.txt")
 	m = m.reloadAll(t)
 
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	m = m.selectBranch(t, "feature")
 	m = m.openHistoryOfSelected(t)
 	m = m.selectCommit(t, "feat: first")
@@ -407,7 +407,7 @@ func TestCherryPickConflictUsesTheOperationDialog(t *testing.T) {
 func TestHistoryViewsFitTerminal(t *testing.T) {
 	for _, size := range []struct{ w, h int }{{120, 32}, {80, 24}, {60, 12}, {40, 10}} {
 		m, _ := newHistoryModel(t, size.w, size.h)
-		m, _ = m.press(t, "2")
+		m, _ = m.press(t, "3")
 		m = m.selectBranch(t, "feature")
 		m = m.openHistoryOfSelected(t)
 

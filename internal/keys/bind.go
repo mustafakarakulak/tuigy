@@ -26,6 +26,7 @@ func (m *Map) bindings() map[string]*key.Binding {
 		"next-pane":     &m.NextPane,
 		"previous-pane": &m.PrevPane,
 
+		"tab-files":    &m.TabFiles,
 		"tab-changes":  &m.TabChanges,
 		"tab-branches": &m.TabBranches,
 		"tab-history":  &m.TabHistory,
@@ -67,6 +68,13 @@ func (m *Map) bindings() map[string]*key.Binding {
 		"fetch-all": &m.FetchAll,
 		"pull":      &m.Pull,
 		"push":      &m.Push,
+
+		"expand":           &m.Expand,
+		"collapse":         &m.Collapse,
+		"expand-subtree":   &m.ExpandSubtree,
+		"collapse-subtree": &m.CollapseSubtree,
+		"expand-all":       &m.ExpandEverything,
+		"collapse-all":     &m.CollapseTree,
 
 		"settings": &m.Settings,
 		"refresh":  &m.Refresh,

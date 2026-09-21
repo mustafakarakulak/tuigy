@@ -60,7 +60,7 @@ func newMergeModel(t *testing.T, width, height int) (Model, string) {
 	m := New(repo)
 	next, _ := m.Update(tea.WindowSizeMsg{Width: width, Height: height})
 	m = next.(Model)
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	return m.reloadAll(t), dir
 }
 
@@ -253,7 +253,7 @@ func TestMergeConflictContinueAfterResolving(t *testing.T) {
 
 	// Resolve the way a user would: edit the file, then stage it from the list.
 	write(t, dir, "shared.txt", "resolved by hand\n")
-	m, _ = m.press(t, "1")
+	m, _ = m.press(t, "2")
 	m = m.reloadAll(t)
 
 	next, cmd = m.press(t, " ")

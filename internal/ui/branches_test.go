@@ -67,7 +67,7 @@ func newBranchModel(t *testing.T, width, height int) (Model, string) {
 	m := New(repo)
 	next, _ := m.Update(tea.WindowSizeMsg{Width: width, Height: height})
 	m = next.(Model)
-	m, _ = m.press(t, "2")
+	m, _ = m.press(t, "3")
 	return m.reloadAll(t), dir
 }
 
@@ -113,7 +113,7 @@ func TestTabSwitchingShowsBranches(t *testing.T) {
 		}
 	}
 
-	m, _ = m.press(t, "1")
+	m, _ = m.press(t, "2")
 	if m.tab != tabChanges {
 		t.Error("pressing 1 should return to the changes tab")
 	}

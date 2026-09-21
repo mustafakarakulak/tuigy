@@ -8,6 +8,7 @@ import (
 	"maps"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -77,6 +78,15 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Refresh):
 		m.statusFP = "" // clear the fingerprint so the next result is always applied
 		return m, m.reload()
+
+	case key.Matches(msg, m.keys.TabFiles):
+		m.clearFilter()
+		m.tab = tabFiles
+		m.focus = paneList
+		if m.allFiles == nil {
+			return m, m.loadFiles()
+		}
+		return m, m.applyFilter()
 
 	case key.Matches(msg, m.keys.TabChanges):
 		m.clearFilter()
@@ -161,6 +171,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.tab {
+	case tabFiles:
+		return m.handleFileTreeKey(msg)
 	case tabBranches:
 		return m.handleBranchKey(msg)
 	case tabHistory:
@@ -196,6 +208,10 @@ func (m Model) copySelection() (tea.Model, tea.Cmd) {
 
 func (m Model) selectionForClipboard() (label, value string) {
 	switch m.tab {
+	case tabFiles:
+		if n, ok := m.selectedFile(); ok {
+			return "path", n.path
+		}
 	case tabBranches:
 		if b, ok := m.selectedBranch(); ok {
 			return "branch", b.Name
@@ -597,6 +613,169 @@ func (m Model) askDiscard() (tea.Model, tea.Cmd) {
 		},
 	}
 	return m, nil
+}
+
+// ---------------------------------------------------------------- files tab
+
+func (m Model) handleFileTreeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.focus == paneDetail {
+		if key.Matches(msg, m.keys.Cancel) {
+			m.focus = paneList
+			return m, nil
+		}
+		var cmd tea.Cmd
+		m.preview, cmd = m.preview.Update(msg)
+		return m, cmd
+	}
+
+	switch {
+	case key.Matches(msg, m.keys.Up):
+		return m, m.moveFileCursor(-1)
+
+	case key.Matches(msg, m.keys.Down):
+		return m, m.moveFileCursor(1)
+
+	case key.Matches(msg, m.keys.PageUp):
+		return m, m.moveFileCursor(-m.listH)
+
+	case key.Matches(msg, m.keys.PageDown):
+		return m, m.moveFileCursor(m.listH)
+
+	case key.Matches(msg, m.keys.Top):
+		return m, m.moveFileCursor(-len(m.fileRows))
+
+	case key.Matches(msg, m.keys.Bottom):
+		return m, m.moveFileCursor(len(m.fileRows))
+
+	case key.Matches(msg, m.keys.Expand):
+		return m, m.toggleExpand(true)
+
+	case key.Matches(msg, m.keys.Collapse):
+		return m.collapseOrLeave()
+
+	case key.Matches(msg, m.keys.ExpandSubtree):
+		return m.foldSubtree(true)
+
+	case key.Matches(msg, m.keys.CollapseSubtree):
+		return m.foldSubtree(false)
+
+	case key.Matches(msg, m.keys.ExpandEverything):
+		return m.foldTree(true)
+
+	case key.Matches(msg, m.keys.CollapseTree):
+		return m.foldTree(false)
+
+	case key.Matches(msg, m.keys.Confirm):
+		return m.enterTreeEntry()
+
+	case key.Matches(msg, m.keys.OpenEditor):
+		return m.openTreeFile()
+	}
+
+	return m, nil
+}
+
+// enterTreeEntry does the obvious thing for whatever the cursor is on: a
+// directory opens or closes, a file hands the pane its contents to scroll.
+func (m Model) enterTreeEntry() (tea.Model, tea.Cmd) {
+	n, ok := m.selectedFile()
+	if !ok {
+		return m, nil
+	}
+	if n.dir {
+		return m, m.toggleExpand(!m.expanded[n.path])
+	}
+	m.focus = paneDetail
+	return m, nil
+}
+
+// collapseOrLeave closes an open directory, and otherwise steps out to the one
+// the cursor is inside. Walking back up a tree is the other half of walking
+// down it, and both are the same key.
+func (m Model) collapseOrLeave() (tea.Model, tea.Cmd) {
+	n, ok := m.selectedFile()
+	if !ok {
+		return m, nil
+	}
+	if n.dir && m.expanded[n.path] {
+		return m, m.toggleExpand(false)
+	}
+
+	parent := path.Dir(n.path)
+	if parent == "." {
+		return m, nil // already at the top of the repository
+	}
+	for i, r := range m.fileRows {
+		if r.node.path == parent {
+			m.fileCursor = i
+			m.ensureFileVisible()
+			return m, m.syncPreview()
+		}
+	}
+	return m, nil
+}
+
+// foldSubtree opens or closes the directory under the cursor along with
+// everything inside it, which is how a package is taken in or put away in one
+// keystroke rather than one level at a time.
+func (m Model) foldSubtree(open bool) (tea.Model, tea.Cmd) {
+	dir := m.foldTarget()
+	if dir == "" {
+		return m, nil
+	}
+
+	// Rebuilt rather than mutated: the map is shared with the model this was
+	// called on.
+	expanded := maps.Clone(m.expanded)
+	if expanded == nil {
+		expanded = map[string]bool{}
+	}
+
+	if open {
+		expandSubtree(expanded, m.allFiles, dir)
+	} else {
+		collapseSubtree(expanded, dir)
+	}
+
+	m.expanded = expanded
+	// Closing takes the cursor with it: the rows it was on are inside what just
+	// folded away.
+	if !open {
+		m.fileRows = buildFileRows(m.allFiles, m.filter, m.expanded)
+		m.selectTreeRow(dir)
+		return m, m.syncPreview()
+	}
+	m.rebuildFileRows()
+	return m, m.syncPreview()
+}
+
+// foldTree opens or closes the whole tree.
+//
+// Closing leaves the top level, which is the view the tab would have opened on
+// had nothing been changed — a way back to the start without scrolling to it.
+func (m Model) foldTree(open bool) (tea.Model, tea.Cmd) {
+	where := m.selectedTreePath()
+
+	if open {
+		m.expanded = expandEverything(m.allFiles)
+	} else {
+		m.expanded = map[string]bool{}
+	}
+
+	m.fileRows = buildFileRows(m.allFiles, m.filter, m.expanded)
+	m.selectTreeRow(where)
+	return m, m.syncPreview()
+}
+
+// openTreeFile hands the selected file to the user's editor.
+func (m Model) openTreeFile() (tea.Model, tea.Cmd) {
+	n, ok := m.selectedFile()
+	if !ok || n.dir {
+		return m, nil
+	}
+
+	m.err = nil
+	return m, openEditor(m.editor, filepath.Join(m.repo.Root, n.path))
 }
 
 // ---------------------------------------------------------------- branches tab
