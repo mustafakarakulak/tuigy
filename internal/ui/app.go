@@ -153,6 +153,10 @@ type Model struct {
 
 	width, height int
 	ready         bool
+	// opened is set once a repository has been drawn, which is what ends the
+	// splash. Switching projects empties the status again and must not bring it
+	// back.
+	opened bool
 
 	status   *git.Status
 	statusFP string
@@ -921,6 +925,7 @@ func (m Model) applyStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	prev := m.currentSelection()
 
 	m.status, m.opState, m.statusFP = msg.status, msg.state, fp
+	m.opened = true
 	m.rows = buildRows(msg.status, m.filter)
 	m.err = nil
 

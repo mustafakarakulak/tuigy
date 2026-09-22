@@ -15,6 +15,13 @@ func (m Model) View() string {
 	if !m.ready {
 		return "loading tuigy…"
 	}
+
+	// Before the first status there is no repository to describe. An error is
+	// something to describe, though, so a failed first load draws the ordinary
+	// interface and says what went wrong rather than sitting on a logo.
+	if m.status == nil && m.err == nil && !m.opened {
+		return m.splashView()
+	}
 	return lipgloss.JoinVertical(lipgloss.Left,
 		m.headerView(),
 		m.bodyView(),
@@ -547,7 +554,7 @@ func (m Model) helpContent() string {
 		render(right),
 	)
 
-	lines := []string{styleTitle.Render("Shortcuts"), "", columns}
+	lines := []string{m.helpHeading(), "", columns}
 
 	lines = append(lines, "",
 		styleDim.Render("press ")+styleKey.Render(",")+
